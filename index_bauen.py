@@ -63,13 +63,15 @@ def main() -> None:
 
     start = time.time()
     for nr, (urteil_id, gericht, datum, aktenzeichen, text) in enumerate(urteile, 1):
-        if sammlung.get(ids=[f"{urteil_id}-0"])["ids"]:
-            continue                                   # schon verarbeitet
-
         abschnitte = in_abschnitte_teilen(text)
+        # Geprüft wird der LETZTE Abschnitt: Wurde mitten in einem Urteil abgebrochen,
+        # fehlt er noch, und das Urteil wird beim nächsten Start vervollständigt.
+        if sammlung.get(ids=[f"{urteil_id}-{len(abschnitte) - 1}"])["ids"]:
+            continue                                   # schon vollständig verarbeitet
+
         for i in range(0, len(abschnitte), config.EMBED_BATCH):
             paket = abschnitte[i : i + config.EMBED_BATCH]
-            sammlung.add(
+            sammlung.upsert(                           # upsert: vorhandene Abschnitte überschreiben
                 ids=[f"{urteil_id}-{i + k}" for k in range(len(paket))],
                 embeddings=embeddings_berechnen(paket),
                 documents=paket,

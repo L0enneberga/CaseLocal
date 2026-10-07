@@ -2,7 +2,9 @@
 
 Durchsuchbare Datenbank deutscher Gerichtsentscheidungen – mit Schlagwortsuche, semantischer Suche und KI-Zusammenfassung. **Alles läuft lokal**: kein Text verlässt den Rechner, keine API-Kosten.
 
-![Screenshot](docs/screenshot.png)
+![Suche mit KI-Zusammenfassung](docs/screenshot1.png)
+
+![Gefundene Urteile mit Fundstellen](docs/screenshot2.png)
 
 ## Was das Projekt kann
 

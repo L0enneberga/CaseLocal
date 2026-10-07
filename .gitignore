@@ -1,0 +1,12 @@
+# Daten und Datenbanken (zu gross, ODbL-Lizenz) - nicht hochladen
+daten/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Editor / Betriebssystem
+.vscode/
+.DS_Store
+Thumbs.db

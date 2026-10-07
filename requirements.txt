@@ -1,0 +1,4 @@
+ollama>=0.6
+chromadb>=1.0
+streamlit>=1.40
+datasets>=3.0

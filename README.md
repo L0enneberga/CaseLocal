@@ -1,6 +1,6 @@
 # LexLokal - lokale KI-Recherche in deutscher Rechtsprechung
 
-Durchsuchbare Datenbank deutscher Gerichtsentscheidungen – mit Schlagwortsuche, semantischer Suche und KI-Zusammenfassung. **Alles läuft lokal**: kein Text verlässt den Rechner, keine API-Kosten.
+Durchsuchbare Datenbank deutscher Gerichtsentscheidungen mit Schlagwortsuche, semantischer Suche und KI-Zusammenfassung. **Alles läuft lokal**: kein Text verlässt den Rechner, keine API-Kosten.
 
 ![Suche mit KI-Zusammenfassung](docs/screenshot1.png)
 

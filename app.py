@@ -36,7 +36,9 @@ with st.sidebar:
         bis_jahr=bis if bis < letztes else None,
     )
     st.divider()
-    st.caption("Daten: Open Legal Data (ODbL 1.0). Keine Rechtsberatung.")
+    st.caption("Daten: [Open Legal Data](https://openlegaldata.io) – vielen Dank an die Ersteller "
+               "(Ostendorff, Blume & Ostendorff, [JCDL 2020](https://doi.org/10.1145/3383583.3398616)). "
+               "Lizenz: ODbL 1.0. Keine Rechtsberatung.")
 
 # --- Suchfeld --------------------------------------------------------------
 # Ein Formular sorgt dafür, dass auch die Enter-Taste die Suche startet.

@@ -14,6 +14,9 @@ Durchsuchbare Datenbank deutscher Gerichtsentscheidungen mit Schlagwortsuche, se
 
 Der Schwerpunkt liegt auf **nachprüfbaren Antworten**: Das Sprachmodell soll nicht nur zusammenfassen, sondern zeigen, worauf sich jede Aussage stützt, und kenntlich machen, wo das nicht gelingt.
 
+- **Die bedeutendsten 10.000 Urteile statt einer Zufallsstichprobe**: Über den Zitationsgraphen von Open Legal Data (rund 7,4 Millionen Zitierungen) bekommt jedes der 424.000 Urteile einen Bedeutungs-Score: Zitierungen, gewichtet nach der Instanz des zitierenden Gerichts, geteilt durch das Alter, mal einem Faktor für die eigene Instanz. Kontingente sorgen dafür, dass auch neue Grundsatzentscheidungen, Instanzgerichte und jede Gerichtsbarkeit vertreten sind (siehe [Auswahl](#auswahl-der-urteile)).
+- **Gewichten und kennzeichnen statt aussortieren**: Bedeutung und Aktualität fließen in die Rangfolge ein, die Relevanz zur Frage bleibt entscheidend. Jeder Treffer zeigt Instanz, „zitiert von N Entscheidungen“ und Jahr.
+- **Hinweis auf Rechtsprechungsänderungen**: Zitiert ein neueres Urteil gleicher oder höherer Instanz einen Treffer mit Formulierungen wie „hält nicht mehr fest“ oder „in Abkehr von“, prüft das Modell, ob dort wirklich eine Änderung der Rechtsprechung erörtert wird. Dann erscheint am Treffer ein Prüfhinweis mit der Originalstelle. Ob der Treffer die alte oder die neue Linie vertritt, entscheidet bewusst der Mensch: Im Test an 40 echten Fällen lag das Sprachmodell dabei etwa jedes zweite Mal falsch.
 - **Zitatprüfung gegen Halluzinationen**: Ein zweiter Durchgang prüft jeden Satz der Antwort gegen das Urteil, das er zitiert. Gestützte Aussagen erhalten ein Häkchen, teilweise oder nicht gestützte werden farbig markiert und begründet.
 - **Zweistufige Analyse**: Das Modell prüft zuerst jedes gefundene Urteil einzeln (beantwortet es die Frage? was wurde im konkreten Fall entschieden? welche Randnummer?) und sortiert unpassende aus. Erst aus diesen Einzelprüfungen entsteht die Antwort.
 - **Gegliederte Antwort nach juristischer Arbeitsweise**: Kurzantwort, einschlägige Normen, Rechtsprechung mit Randnummern, abweichende Entscheidungen und was die Urteile *nicht* beantworten. Einzelfall und Rechtssatz werden getrennt, höhere Instanzen und neuere Entscheidungen zuerst.
@@ -40,7 +43,8 @@ Frage ──► LLM: Suchbegriffe ──► hybride Suche ──► LLM: Einzelp
 | Datei | Aufgabe |
 | --- | --- |
 | `config.py` | Alle Einstellungen (Modelle, Pfade, Datenmenge) |
-| `daten_laden.py` | Lädt Urteile von Hugging Face in SQLite |
+| `auswahl.py` | Wählt die bedeutendsten Urteile über den Zitationsgraphen aus |
+| `daten_laden.py` | Lädt die Urteile von Hugging Face in SQLite |
 | `gliederung.py` | Erkennt Tenor, Tatbestand, Gründe und Randnummern |
 | `index_bauen.py` | Teilt Urteile entlang der Gliederung in Abschnitte, berechnet Embeddings |
 | `schlagworte.py` | Optional: KI-Verschlagwortung |
@@ -48,6 +52,7 @@ Frage ──► LLM: Suchbegriffe ──► hybride Suche ──► LLM: Einzelp
 | `normen.py` | Erkennt Normzitate und verlinkt sie |
 | `llm.py` | Prompts und Aufrufe an das Sprachmodell (Einzelprüfung, Antwort, Zitatprüfung) |
 | `belege.py` | Zerlegt die Antwort in Sätze und markiert, welche Aussagen belegt sind |
+| `abweichung.py` | Sucht neuere Urteile, die von einem Treffer abweichen könnten |
 | `app.py` | Weboberfläche (Streamlit) |
 | `tests/` | Automatische Tests (pytest), laufen bei jedem Push auf GitHub |
 
@@ -83,11 +88,26 @@ hf auth login                    # Hugging-Face-Token eingeben
 ## Benutzung
 
 ```bash
-python daten_laden.py            # 1. Urteile laden (1.000er-Stichprobe)
-python index_bauen.py            # 2. Suchindex bauen
+python daten_laden.py            # 1. die 10.000 bedeutendsten Urteile auswählen und laden (ca. 3 GB)
+python index_bauen.py            # 2. Suchindex bauen (ca. 2-3 Stunden, kann unterbrochen werden)
 python schlagworte.py --anzahl 100   # 3. optional: KI-Schlagworte
 streamlit run app.py             # 4. App starten -> http://localhost:8501
 ```
+
+## Auswahl der Urteile
+
+Statt einer Zufallsstichprobe lädt CaseLocal gezielt die bedeutendsten Urteile aus dem Vollbestand. Dafür werden zuerst nur der Zitationsgraph und die Metadaten aller Urteile gelesen (rund 120 MB statt 10 GB), dann der Score berechnet und erst danach die Volltexte der Auswahl geladen.
+
+| Kontingent | Anzahl | Warum |
+| --- | --- | --- |
+| Neue Urteile oberster Gerichte (letzte 5 Jahre) | 2.000 | Neue Grundsatzentscheidungen hatten noch keine Zeit, oft zitiert zu werden |
+| Instanzgerichte (OLG, OVG, LAG, LG, VG, ...) | 1.500 | Die tägliche Praxis wird auch von Instanzgerichten geprägt |
+| Mindestens je Gerichtsbarkeit | 400 | Auch seltener zitierte Gebiete wie das Steuerrecht sind vertreten |
+| Rest nach Bedeutungs-Score | bis 10.000 | Die meistzitierten Entscheidungen |
+
+Alle Zahlen lassen sich in `config.py` ändern. Mit `DATENAUSWAHL = "stichprobe"` arbeitet CaseLocal wieder mit der Zufallsstichprobe.
+
+**Warum veraltete Urteile nicht einfach aussortiert werden:** Neuer heißt nicht maßgeblicher – eine BGH-Grundsatzentscheidung von 2005 kann heute noch die Linie bestimmen. Die herrschende Meinung steckt zudem vor allem in der Literatur, die im Datenbestand fehlt. Und „pro Rechtsfrage nur das Neueste“ setzt voraus, Rechtsfragen zuverlässig zu erkennen; beim Aussortieren verschwänden womöglich gerade die tragenden Entscheidungen. CaseLocal gewichtet deshalb, kennzeichnet und warnt, statt auszuschließen.
 
 ## Tests
 
@@ -100,9 +120,9 @@ Die Tests prüfen die Bausteine, die ohne Daten und ohne Ollama funktionieren: F
 
 ## Datengrundlage und Dank
 
-Die Urteile stammen aus dem Datensatz [court-decisions-germany](https://huggingface.co/datasets/openlegaldata/court-decisions-germany) von **[Open Legal Data](https://openlegaldata.io)**. Das Projekt sammelt deutsche Gerichtsentscheidungen, bereitet sie mit Metadaten (Gericht, Datum, Aktenzeichen, ECLI) und als sauberen Text auf und stellt sie frei zur Verfügung. Ohne diese Vorarbeit gäbe es CaseLocal nicht.
+Die Urteile stammen aus dem Datensatz [court-decisions-germany](https://huggingface.co/datasets/openlegaldata/court-decisions-germany), die Zitierungen aus dem [legal-citation-graph-germany](https://huggingface.co/datasets/openlegaldata/legal-citation-graph-germany), beide von **[Open Legal Data](https://openlegaldata.io)**. Das Projekt sammelt deutsche Gerichtsentscheidungen, bereitet sie mit Metadaten (Gericht, Datum, Aktenzeichen, ECLI) und als sauberen Text auf und stellt sie frei zur Verfügung. Ohne diese Vorarbeit gäbe es CaseLocal nicht.
 
-**Abgrenzung:** Von Open Legal Data stammen die Urteilstexte und ihre Metadaten. Selbst gebaut habe ich die Such- und Analyseschicht darauf: Indexierung, hybride Suche, KI-Verschlagwortung, RAG-Antworten und die Oberfläche.
+**Abgrenzung:** Von Open Legal Data stammen die Urteilstexte, ihre Metadaten und der Zitationsgraph. Selbst gebaut habe ich die Such- und Analyseschicht darauf: Bedeutungs-Score und Auswahl, Indexierung, hybride Suche, KI-Analyse mit Zitatprüfung, Hinweis auf Rechtsprechungsänderungen und die Oberfläche.
 
 Wer dieses Projekt oder den Datensatz verwendet, sollte die Arbeit der Ersteller zitieren:
 
@@ -140,6 +160,13 @@ series = {JCDL '20}
 
 **Weitere offene Bausteine**, auf denen das Projekt aufsetzt: [Ollama](https://ollama.com), das Embedding-Modell [bge-m3](https://huggingface.co/BAAI/bge-m3) (BAAI), das Sprachmodell Gemma (Google DeepMind), [ChromaDB](https://www.trychroma.com), [SQLite](https://sqlite.org) und [Streamlit](https://streamlit.io).
 
-**Grenzen:** Auch die Zitatprüfung erfolgt durch ein Sprachmodell und kann sich irren. Sie macht Fehler sichtbar, garantiert aber keine Richtigkeit. Der Datenbestand ist eine Stichprobe.
+**Grenzen:**
+
+- Auch die Zitatprüfung erfolgt durch ein Sprachmodell und kann sich irren. Sie macht Fehler sichtbar, garantiert aber keine Richtigkeit.
+- Der Zitationsgraph enthält nur Zitierungen **innerhalb** des Open-Legal-Data-Bestands. Nicht veröffentlichte Urteile und die Literatur fehlen; der Score misst also Bedeutung in diesem Bestand, nicht die herrschende Meinung.
+- Neue Grundsatzurteile sind trotz Altersnormierung und eigenem Kontingent anfangs unterbewertet.
+- Der Hinweis auf Rechtsprechungsänderungen ist eine Heuristik: Er findet nur Änderungen in Urteilen, die selbst in der Auswahl sind, sagt nicht, welche Seite überholt ist, und ersetzt nicht die Prüfung im Kommentar.
+- Der Zitationsgraph enthält keine Zitierungen von EuGH-Urteilen. Sie können deshalb keinen Bedeutungs-Score erhalten und sind in der Auswahl nicht vertreten.
+- Der Datenbestand umfasst 10.000 von rund 424.000 Urteilen.
 
 **Hinweis:** Demo-Projekt, keine Rechtsberatung. KI-Zusammenfassungen können Fehler enthalten – maßgeblich ist immer der Urteilstext.

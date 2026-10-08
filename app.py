@@ -14,6 +14,7 @@ import re
 import ollama
 import streamlit as st
 
+import abweichung
 import belege
 import config
 import gliederung
@@ -25,8 +26,9 @@ OLLAMA_FEHLER = "Ollama ist nicht erreichbar. Bitte die Ollama-App starten und n
 
 st.set_page_config(page_title="CaseLocal", page_icon="⚖️", layout="wide")
 st.title("CaseLocal")
-st.caption(f"{suche.anzahl_urteile():,} Urteile · Modell: {config.LLM_MODELL} · "
-           "Lokale KI-Recherche in deutscher Rechtsprechung".replace(",", "."))
+BESTAND = {"bedeutend": "bedeutendste Urteile laut Zitationsgraph", "stichprobe": "Zufallsstichprobe"}
+st.caption(f"{suche.anzahl_urteile():,} Urteile ({BESTAND[config.DATENAUSWAHL]}) · "
+           f"Modell: {config.LLM_MODELL} · Lokale KI-Recherche in deutscher Rechtsprechung".replace(",", "."))
 
 # --- Seitenleiste mit Einstellungen ---------------------------------------
 with st.sidebar:
@@ -42,6 +44,11 @@ with st.sidebar:
         "Zitatprüfung", value=True, disabled=not ki_antwort,
         help="Ein zweiter Durchgang prüft jeden Satz der Antwort: Stützt das zitierte Urteil "
              "die Aussage wirklich? Nicht belegte Sätze werden markiert.")
+    abweichungen_pruefen = st.toggle(
+        "Auf Rechtsprechungsänderungen prüfen", value=True,
+        help="Sucht neuere Urteile gleicher oder höherer Instanz, die einen Treffer zitieren und dabei "
+             "eine Änderung der Rechtsprechung erörtern (z. B. „hält an seiner Rechtsprechung nicht mehr "
+             "fest“). Ob der Treffer die alte oder neue Linie vertritt, zeigt die Originalstelle.")
 
     st.header("Filter")
     auswahl = st.multiselect("Gerichtsbarkeit", suche.gerichtsbarkeiten(),
@@ -75,6 +82,19 @@ def pruefung_zeile(t: dict, p: dict) -> str:
     return kopf + f":green-badge[relevant] {p['entscheidung']}" + (f" (Rn. {rn})" if rn else "")
 
 
+def badges(t: dict) -> str:
+    """Kennzeichnung eines Treffers: Instanz, Zitierhäufigkeit, Jahr, ggf. Warnung."""
+    farbe = {"Oberstes Gericht": "blue", "Obergericht": "violet"}.get(t.get("instanz"), "gray")
+    teile = [f":{farbe}-badge[{t['instanz']}]"] if t.get("instanz") else []
+    if t.get("zitiert_von"):
+        teile.append(f":gray-badge[zitiert von {t['zitiert_von']}]")
+    if t.get("datum"):
+        teile.append(f":gray-badge[{t['datum'][:4]}]")
+    if t.get("abweichungen"):
+        teile.append(":orange-badge[:material/history: Rechtsprechungsänderung prüfen]")
+    return " ".join(teile)
+
+
 def absaetze(antwort: str) -> str:
     """Leerzeile nach fetten Zwischenüberschriften ("**1. Kurzantwort**"), sonst klebt Markdown
     die Überschrift und den folgenden Text in eine Zeile."""
@@ -94,6 +114,15 @@ def recherchieren(frage: str) -> dict:
         e["schlagworte"] = llm.frage_zu_schlagworten(frage) if ki_schlagworte else frage.split()
         e["treffer"] = suche.hybride_suche(frage, e["schlagworte"], anzahl, filter)
         status.update(label=f"Suche: {len(e['treffer'])} Urteile gefunden", state="complete")
+
+    if e["treffer"] and abweichungen_pruefen:
+        with st.status("Prüfe auf neuere, abweichende Rechtsprechung …", type="step") as status:
+            for t in e["treffer"]:
+                t["abweichungen"] = abweichung.pruefen(t)   # landet auch im Material für das LLM
+            gefunden = sum(bool(t["abweichungen"]) for t in e["treffer"])
+            status.update(label=f"Rechtsprechungsänderungen: bei {gefunden} Urteil(en) zu prüfen"
+                          if gefunden else "Rechtsprechungsänderungen: keine Hinweise gefunden",
+                          state="complete")
     if not e["treffer"] or not ki_antwort:
         return e
     e["auswahl"] = e["treffer"][: config.KI_TREFFER]   # nur die besten gehen an das LLM
@@ -173,8 +202,15 @@ def anzeigen(e: dict) -> None:
     st.subheader("Gefundene Urteile")
     for t in e["treffer"]:
         titel = (f"[{t['nr']}] {t['gericht'] or 'Gericht unbekannt'} · {t['typ'] or 'Entscheidung'} "
-                 f"vom {t['datum']} · {t['aktenzeichen']}")
+                 f"vom {t['datum']} · {t['aktenzeichen']}  {badges(t)}")
         with st.expander(titel, expanded=(t["nr"] <= 3)):
+            for a in t.get("abweichungen") or []:
+                st.warning(f"**Rechtsprechungsänderung prüfen:** {a['gericht']}, {a['typ'] or 'Entscheidung'} "
+                           f"vom {a['datum']}, Az. {a['aktenzeichen']} erörtert im Zusammenhang mit diesem "
+                           f"Urteil eine Änderung der Rechtsprechung. {a['erklaerung']} Ob dieses Urteil die "
+                           "alte oder die neue Linie vertritt, bitte im Volltext prüfen: "
+                           f"[{a['aktenzeichen']}](https://de.openlegaldata.io/case/{a['slug']})\n\n"
+                           f"> „…{a['stelle']}…“", icon=":material/history:")
             if e["pruefungen"] and t["nr"] in e["pruefungen"]:
                 st.markdown(pruefung_zeile(t, e["pruefungen"][t["nr"]]).split(" — ", 1)[1])
             if t["kurzfassung"]:

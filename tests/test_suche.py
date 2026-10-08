@@ -32,3 +32,16 @@ def test_filter_mit_allen_feldern():
     bedingung, werte = Filter(["Arbeitsgerichtsbarkeit", "Sozialgerichtsbarkeit"], 2015, 2020).sql()
     assert bedingung == "gerichtsbarkeit IN (?, ?) AND datum >= ? AND datum <= ?"
     assert werte == ["Arbeitsgerichtsbarkeit", "Sozialgerichtsbarkeit", "2015-01-01", "2020-12-31"]
+
+
+def test_rang_faktor_bedeutung_und_aktualitaet():
+    from datetime import date
+
+    import config
+    from suche import aktualitaet, rang_faktor
+    heute = date(2026, 1, 1)
+    assert aktualitaet("2026-01-01", heute) == 1.0
+    assert round(aktualitaet(f"{2026 - config.AKTUALITAET_HALBWERT}-01-01", heute), 2) == 0.5
+    assert aktualitaet("", heute) == 0.0
+    assert rang_faktor(0.0, "1990-01-01", heute) < rang_faktor(1.0, "1990-01-01", heute)
+    assert rang_faktor(1.0, "2026-01-01", heute) == 1 + config.RANG_BEDEUTUNG + config.RANG_AKTUALITAET

@@ -24,11 +24,11 @@ if not exist "%VPY%" (
     echo [Fehler] CaseLocal ist noch nicht eingerichtet. Bitte zuerst setup.bat ausführen.
     goto fehler
 )
-if not exist "daten\urteile.db" (
+%VPY% -c "import config, sys; sys.exit(0 if config.SQLITE_PFAD.exists() else 1)" || (
     echo [Fehler] Es sind noch keine Urteile geladen. Bitte zuerst setup.bat ausführen.
     goto fehler
 )
-if not exist "daten\chroma\chroma.sqlite3" (
+%VPY% -c "import config, sys; sys.exit(0 if (config.CHROMA_PFAD / 'chroma.sqlite3').exists() else 1)" || (
     echo [Fehler] Der Suchindex fehlt. Bitte zuerst setup.bat ausführen.
     goto fehler
 )

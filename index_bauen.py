@@ -93,41 +93,49 @@ def embeddings_berechnen(texte: list[str]) -> list[list[float]]:
     return antwort["embeddings"]
 
 
+def paket_speichern(sammlung, paket: list[dict]) -> None:
+    """Berechnet die Embeddings für ein Paket von Abschnitten und speichert sie."""
+    sammlung.upsert(                                   # upsert: vorhandene Abschnitte überschreiben
+        ids=[a["id"] for a in paket],
+        embeddings=embeddings_berechnen([a["text"] for a in paket]),
+        documents=[a["text"] for a in paket],
+        metadatas=[a["meta"] for a in paket],
+    )
+
+
 def main() -> None:
     db = sqlite3.connect(config.SQLITE_PFAD)
-    urteile = db.execute(
-        "SELECT id, gericht, datum, aktenzeichen, text FROM urteile ORDER BY id"
-    ).fetchall()
+    anzahl = db.execute("SELECT COUNT(*) FROM urteile").fetchone()[0]
     sammlung = sammlung_oeffnen()
-    print(f"{len(urteile)} Urteile in der Datenbank, {sammlung.count()} Abschnitte schon im Index.")
+    print(f"{anzahl} Urteile in der Datenbank, {sammlung.count()} Abschnitte schon im Index.")
 
-    start = time.time()
-    for nr, (urteil_id, gericht, datum, aktenzeichen, text) in enumerate(urteile, 1):
+    # Abschnitte mehrerer Urteile werden zu Paketen von EMBED_BATCH gesammelt:
+    # Das Embedding-Modell ist mit vollen Paketen deutlich schneller.
+    start, offen, neu = time.time(), [], 0
+    zeilen = db.execute("SELECT id, gericht, datum, aktenzeichen, text FROM urteile ORDER BY id")
+    for nr, (urteil_id, gericht, datum, aktenzeichen, text) in enumerate(zeilen, 1):
         abschnitte = abschnitte_bilden(text)
         # Geprüft wird der LETZTE Abschnitt: Wurde mitten in einem Urteil abgebrochen,
         # fehlt er noch, und das Urteil wird beim nächsten Start vervollständigt.
-        if sammlung.get(ids=[f"{urteil_id}-{len(abschnitte) - 1}"])["ids"]:
-            continue                                   # schon vollständig verarbeitet
+        if not sammlung.get(ids=[f"{urteil_id}-{len(abschnitte) - 1}"])["ids"]:
+            for i, a in enumerate(abschnitte):
+                offen.append({"id": f"{urteil_id}-{i}", "text": a["text"], "meta": {
+                    "urteil_id": urteil_id, "gericht": gericht or "", "datum": datum or "",
+                    "aktenzeichen": aktenzeichen or "", "teil": a["teil"],
+                    "rn_von": a["rn_von"], "rn_bis": a["rn_bis"]}})
+            neu += 1
+        while len(offen) >= config.EMBED_BATCH:
+            paket_speichern(sammlung, offen[: config.EMBED_BATCH])
+            offen = offen[config.EMBED_BATCH:]
 
-        for i in range(0, len(abschnitte), config.EMBED_BATCH):
-            paket = abschnitte[i : i + config.EMBED_BATCH]
-            sammlung.upsert(                           # upsert: vorhandene Abschnitte überschreiben
-                ids=[f"{urteil_id}-{i + k}" for k in range(len(paket))],
-                embeddings=embeddings_berechnen([a["text"] for a in paket]),
-                documents=[a["text"] for a in paket],
-                metadatas=[
-                    {"urteil_id": urteil_id, "gericht": gericht or "", "datum": datum or "",
-                     "aktenzeichen": aktenzeichen or "", "teil": a["teil"],
-                     "rn_von": a["rn_von"], "rn_bis": a["rn_bis"]}
-                    for a in paket
-                ],
-            )
-
-        if nr % 25 == 0 or nr == len(urteile):
+        if nr % 250 == 0:
             minuten = (time.time() - start) / 60
-            print(f"  {nr}/{len(urteile)} Urteile verarbeitet ({minuten:.1f} min)")
+            rest = minuten / nr * (anzahl - nr)
+            print(f"  {nr}/{anzahl} Urteile verarbeitet ({minuten:.1f} min, noch ca. {rest:.0f} min)")
+    if offen:
+        paket_speichern(sammlung, offen)
 
-    print(f"Fertig. Der Index enthält jetzt {sammlung.count()} Abschnitte.")
+    print(f"Fertig: {neu} Urteile neu verarbeitet. Der Index enthält jetzt {sammlung.count()} Abschnitte.")
 
 
 if __name__ == "__main__":

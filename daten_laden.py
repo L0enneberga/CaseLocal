@@ -2,13 +2,26 @@
 
 Aufruf:  python daten_laden.py
 
-Ergebnis: daten/urteile.db mit zwei Tabellen
-  - urteile      : eine Zeile pro Urteil (Gericht, Datum, Aktenzeichen, Text ...)
+Welche Urteile geladen werden, steht in config.py (DATENAUSWAHL):
+  "bedeutend"  - die bedeutendsten Urteile aus dem Vollbestand (siehe auswahl.py)
+  "stichprobe" - eine fertige Zufallsstichprobe
+
+Ergebnis: eine SQLite-Datenbank (Pfad siehe config.py) mit drei Tabellen
+  - urteile      : eine Zeile pro Urteil (Gericht, Datum, Aktenzeichen, Text, Bedeutung ...)
   - urteile_fts  : Volltextindex für die Schlagwortsuche (SQLite FTS5)
+  - zitierungen  : welches Urteil der Datenbank zitiert welches andere
 """
 import sqlite3
 
 import config
+
+# Spalten, die nach der ersten Version dazugekommen sind (werden bei alten Datenbanken ergänzt)
+NEUE_SPALTEN = {
+    "instanz": "TEXT DEFAULT ''",          # Oberstes Gericht / Obergericht / Eingangsgericht
+    "zitiert_von": "INTEGER DEFAULT 0",    # von so vielen Urteilen im Vollbestand zitiert
+    "bedeutung": "REAL DEFAULT 0",         # 0 bis 1: Rang nach Bedeutungs-Score in dieser Datenbank
+    "auswahl_grund": "TEXT DEFAULT ''",    # über welches Kontingent das Urteil ausgewählt wurde
+}
 
 
 def tabellen_anlegen(db: sqlite3.Connection) -> None:
@@ -35,8 +48,20 @@ def tabellen_anlegen(db: sqlite3.Connection) -> None:
             gericht, aktenzeichen, schlagworte, text,
             tokenize = 'unicode61 remove_diacritics 2'
         );
+
+        -- Zitierungen zwischen Urteilen dieser Datenbank (für den Hinweis auf Rechtsprechungsänderungen)
+        CREATE TABLE IF NOT EXISTS zitierungen (
+            von_id   INTEGER,
+            nach_id  INTEGER,
+            PRIMARY KEY (von_id, nach_id)
+        );
+        CREATE INDEX IF NOT EXISTS zitierungen_nach ON zitierungen (nach_id);
         """
     )
+    vorhanden = {zeile[1] for zeile in db.execute("PRAGMA table_info(urteile)")}
+    for spalte, typ in NEUE_SPALTEN.items():
+        if spalte not in vorhanden:
+            db.execute(f"ALTER TABLE urteile ADD COLUMN {spalte} {typ}")
 
 
 def urteile_speichern(db: sqlite3.Connection, urteile) -> int:
@@ -44,27 +69,35 @@ def urteile_speichern(db: sqlite3.Connection, urteile) -> int:
 
     Gibt zurück, wie viele Urteile neu hinzugekommen sind.
     """
+    from auswahl import gerichtsbarkeit, instanz
+
     neu = 0
     for u in urteile:
         text = u.get("markdown_content") or ""
         if len(text) < 200:          # leere oder kaputte Einträge überspringen
             continue
         gericht = u.get("court") or {}
+        name = gericht.get("name", "")
         werte = (
             u["id"],
             u.get("slug", ""),
-            gericht.get("name", ""),
-            gericht.get("jurisdiction", ""),
+            name,
+            gerichtsbarkeit(gericht.get("jurisdiction"), name),
             str(u.get("date", ""))[:10],
             u.get("file_number", ""),
             u.get("type", ""),
             u.get("ecli", ""),
             text,
+            u.get("instanz") or instanz(gericht.get("level_of_appeal"), name),
+            u.get("zitiert_von", 0),
+            u.get("bedeutung", 0.0),
+            u.get("auswahl_grund", ""),
         )
         cursor = db.execute(
             "INSERT OR IGNORE INTO urteile "
-            "(id, slug, gericht, gerichtsbarkeit, datum, aktenzeichen, typ, ecli, text) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "(id, slug, gericht, gerichtsbarkeit, datum, aktenzeichen, typ, ecli, text, "
+            " instanz, zitiert_von, bedeutung, auswahl_grund) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             werte,
         )
         if cursor.rowcount == 1:     # nur wenn das Urteil wirklich neu war
@@ -78,19 +111,35 @@ def urteile_speichern(db: sqlite3.Connection, urteile) -> int:
     return neu
 
 
+def zitierungen_speichern(db: sqlite3.Connection, zitierungen) -> None:
+    db.executemany("INSERT OR IGNORE INTO zitierungen (von_id, nach_id) VALUES (?, ?)",
+                   zitierungen[["von_id", "nach_id"]].itertuples(index=False, name=None))
+    db.commit()
+
+
 def main() -> None:
-    # Erst hier importieren: die Bibliothek ist groß und wird nur in diesem Schritt gebraucht.
-    from datasets import load_dataset
-
     config.DATEN_ORDNER.mkdir(exist_ok=True)
-    print(f"Lade {config.DATENSATZ} ({config.DATENSATZ_VERSION}) ...")
-    daten = load_dataset(config.DATENSATZ, name=config.DATENSATZ_VERSION)
-    teil = daten[list(daten.keys())[0]]      # der Datensatz hat nur einen Teil ("train")
-    print(f"{len(teil)} Urteile heruntergeladen. Schreibe in {config.SQLITE_PFAD} ...")
-
     db = sqlite3.connect(config.SQLITE_PFAD)
     tabellen_anlegen(db)
-    neu = urteile_speichern(db, teil)
+
+    if config.DATENAUSWAHL == "bedeutend":
+        import auswahl
+        print(f"Wähle die {config.AUSWAHL_GESAMT:,} bedeutendsten Urteile aus dem Vollbestand "
+              f"({config.VOLLBESTAND}) ...".replace(",", "."))
+        urteile, zitierungen = auswahl.laden()
+        print(f"Schreibe in {config.SQLITE_PFAD} ...")
+        neu = urteile_speichern(db, urteile)
+        zitierungen_speichern(db, zitierungen)
+        print(f"  {len(zitierungen):,} Zitierungen zwischen den ausgewählten Urteilen".replace(",", "."))
+    else:
+        # Erst hier importieren: die Bibliothek ist groß und wird nur in diesem Schritt gebraucht.
+        from datasets import load_dataset
+        print(f"Lade {config.DATENSATZ} ({config.DATENSATZ_VERSION}) ...")
+        daten = load_dataset(config.DATENSATZ, name=config.DATENSATZ_VERSION)
+        teil = daten[list(daten.keys())[0]]      # der Datensatz hat nur einen Teil ("train")
+        print(f"{len(teil)} Urteile heruntergeladen. Schreibe in {config.SQLITE_PFAD} ...")
+        neu = urteile_speichern(db, teil)
+
     gesamt = db.execute("SELECT COUNT(*) FROM urteile").fetchone()[0]
     print(f"Fertig: {neu} neue Urteile, {gesamt} insgesamt in der Datenbank.")
 

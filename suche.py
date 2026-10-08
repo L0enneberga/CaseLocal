@@ -11,6 +11,7 @@ import re
 import sqlite3
 from contextlib import closing
 from dataclasses import dataclass, field
+from datetime import date
 from functools import lru_cache
 
 import chromadb
@@ -51,7 +52,17 @@ class Filter:
         return " AND ".join(bedingungen), werte
 
 
+@lru_cache(maxsize=1)
+def _aufbau_pruefen() -> None:
+    """Ergänzt bei älteren Datenbanken einmalig die neueren Spalten und Tabellen."""
+    import daten_laden
+    with closing(sqlite3.connect(config.SQLITE_PFAD)) as db:
+        daten_laden.tabellen_anlegen(db)
+        db.commit()
+
+
 def _db() -> sqlite3.Connection:
+    _aufbau_pruefen()
     db = sqlite3.connect(config.SQLITE_PFAD)
     db.row_factory = sqlite3.Row                       # Zeilen wie Dictionaries ansprechen
     return db
@@ -227,6 +238,20 @@ def _umgebung(abschnitt_id: str) -> tuple[str, int, int]:
     return text, min(rn, default=0), max(rn, default=0)
 
 
+def aktualitaet(datum: str, heute: date | None = None) -> float:
+    """1.0 für ein Urteil von heute, 0.5 nach AKTUALITAET_HALBWERT Jahren, dann weiter fallend."""
+    try:
+        alter = ((heute or date.today()) - date.fromisoformat(datum[:10])).days / 365.25
+    except ValueError:
+        return 0.0
+    return 0.5 ** (max(alter, 0) / config.AKTUALITAET_HALBWERT)
+
+
+def rang_faktor(bedeutung: float, datum: str, heute: date | None = None) -> float:
+    """Faktor für die Punkte eines Treffers, z. B. 1.25 für ein sehr bedeutendes, altes Urteil."""
+    return 1 + config.RANG_BEDEUTUNG * bedeutung + config.RANG_AKTUALITAET * aktualitaet(datum, heute)
+
+
 def hybride_suche(frage: str, schlagworte: list[str], anzahl: int = 8,
                   filter: Filter | None = None) -> list[dict]:
     """Kombiniert beide Suchen mit 'Reciprocal Rank Fusion'.
@@ -252,6 +277,14 @@ def hybride_suche(frage: str, schlagworte: list[str], anzahl: int = 8,
             punkte[uid] = punkte.get(uid, 0) + 1 / (60 + platz)
             beste.setdefault(uid, t)                   # Abschnitt aus Bedeutungssuche bevorzugt
             quelle.setdefault(uid, []).append(name)
+
+    # Zuschlag für Bedeutung und Aktualität: Die Relevanz zur Frage entscheidet,
+    # bei ähnlich passenden Urteilen gewinnt das meistzitierte und neuere.
+    with closing(_db()) as db:
+        platzhalter = ", ".join("?" for _ in punkte)
+        for uid, bedeutung, datum in db.execute(
+                f"SELECT id, bedeutung, datum FROM urteile WHERE id IN ({platzhalter})", list(punkte)):
+            punkte[uid] *= rang_faktor(bedeutung or 0.0, datum or "")
 
     rangliste = sorted(punkte, key=punkte.get, reverse=True)[:anzahl]
     treffer = []

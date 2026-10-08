@@ -13,8 +13,8 @@ import suche
 
 OLLAMA_FEHLER = "Ollama ist nicht erreichbar. Bitte die Ollama-App starten und neu suchen."
 
-st.set_page_config(page_title="LexLokal", page_icon="⚖️", layout="wide")
-st.title("LexLokal")
+st.set_page_config(page_title="CaseLocal", page_icon="⚖️", layout="wide")
+st.title("CaseLocal")
 st.caption(f"{suche.anzahl_urteile():,} Urteile · Modell: {config.LLM_MODELL} · "
            "Lokale KI-Recherche in deutscher Rechtsprechung".replace(",", "."))
 

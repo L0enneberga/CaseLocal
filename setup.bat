@@ -1,6 +1,6 @@
 @echo off
 rem ======================================================================
-rem  LexLokal - Ersteinrichtung. Doppelklick genügt.
+rem  CaseLocal - Ersteinrichtung. Doppelklick genügt.
 rem
 rem  Legt die virtuelle Umgebung an, installiert die Bibliotheken, lädt die
 rem  Modelle und die Urteile und baut den Suchindex - alles in einem Durchgang.
@@ -9,12 +9,12 @@ rem ======================================================================
 chcp 65001 >nul
 setlocal
 cd /d "%~dp0"
-title LexLokal - Einrichtung
+title CaseLocal - Einrichtung
 set "VPY=.venv\Scripts\python.exe"
 set "PYTHONUTF8=1"
 
 echo.
-echo === LexLokal: Ersteinrichtung ===
+echo === CaseLocal: Ersteinrichtung ===
 echo.
 
 rem --- Python finden (bevorzugt über den Python-Launcher "py") ------------

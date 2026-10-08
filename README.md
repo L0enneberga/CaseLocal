@@ -1,10 +1,10 @@
-# LexLokal - lokale KI-Recherche in deutscher Rechtsprechung
+# CaseLocal - lokale KI-Recherche in deutscher Rechtsprechung
 
-[![Tests](https://github.com/L0enneberga/LexLokal/actions/workflows/tests.yml/badge.svg)](https://github.com/L0enneberga/LexLokal/actions/workflows/tests.yml)
+[![Tests](https://github.com/L0enneberga/CaseLocal/actions/workflows/tests.yml/badge.svg)](https://github.com/L0enneberga/CaseLocal/actions/workflows/tests.yml)
 
 Durchsuchbare Datenbank deutscher Gerichtsentscheidungen mit Schlagwortsuche, semantischer Suche und KI-Zusammenfassung. **Alles läuft lokal**: Kein Text verlässt den Rechner, und es entstehen keine API-Kosten.
 
-> **Datengrundlage:** LexLokal nutzt den Urteilsdatensatz von [Open Legal Data](https://openlegaldata.io) (Ostendorff, Blume & Ostendorff, 2020). Das Sammeln, Aufbereiten und offene Bereitstellen von über 400.000 Gerichtsentscheidungen ist ihre Arbeit, nicht meine. Herzlichen Dank dafür! Details und Zitat: [Datengrundlage und Dank](#datengrundlage-und-dank).
+> **Datengrundlage:** CaseLocal nutzt den Urteilsdatensatz von [Open Legal Data](https://openlegaldata.io) (Ostendorff, Blume & Ostendorff, 2020). Das Sammeln, Aufbereiten und offene Bereitstellen von über 400.000 Gerichtsentscheidungen ist ihre Arbeit, nicht meine. Herzlichen Dank dafür! Details und Zitat: [Datengrundlage und Dank](#datengrundlage-und-dank).
 
 ![Suche mit KI-Zusammenfassung](docs/screenshot1.png)
 
@@ -59,8 +59,8 @@ Voraussetzungen: [Python](https://www.python.org/downloads/) 3.11+ und [Ollama](
 Voraussetzungen: Python 3.11+, [Ollama](https://ollama.com/download), ein Hugging-Face-Account mit akzeptierten Bedingungen für den [Datensatz](https://huggingface.co/datasets/openlegaldata/court-decisions-germany).
 
 ```bash
-git clone https://github.com/L0enneberga/LexLokal.git
-cd LexLokal
+git clone https://github.com/L0enneberga/CaseLocal.git
+cd CaseLocal
 python -m venv .venv
 .venv\Scripts\activate          # macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
@@ -90,7 +90,7 @@ Die Tests prüfen die Bausteine, die ohne Daten und ohne Ollama funktionieren: F
 
 ## Datengrundlage und Dank
 
-Die Urteile stammen aus dem Datensatz [court-decisions-germany](https://huggingface.co/datasets/openlegaldata/court-decisions-germany) von **[Open Legal Data](https://openlegaldata.io)**. Das Projekt sammelt deutsche Gerichtsentscheidungen, bereitet sie mit Metadaten (Gericht, Datum, Aktenzeichen, ECLI) und als sauberen Text auf und stellt sie frei zur Verfügung. Ohne diese Vorarbeit gäbe es LexLokal nicht.
+Die Urteile stammen aus dem Datensatz [court-decisions-germany](https://huggingface.co/datasets/openlegaldata/court-decisions-germany) von **[Open Legal Data](https://openlegaldata.io)**. Das Projekt sammelt deutsche Gerichtsentscheidungen, bereitet sie mit Metadaten (Gericht, Datum, Aktenzeichen, ECLI) und als sauberen Text auf und stellt sie frei zur Verfügung. Ohne diese Vorarbeit gäbe es CaseLocal nicht.
 
 **Abgrenzung:** Von Open Legal Data stammen die Urteilstexte und ihre Metadaten. Selbst gebaut habe ich die Such- und Analyseschicht darauf: Indexierung, hybride Suche, KI-Verschlagwortung, RAG-Antworten und die Oberfläche.
 

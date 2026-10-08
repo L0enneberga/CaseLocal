@@ -1,6 +1,6 @@
 @echo off
 rem ======================================================================
-rem  LexLokal starten. Doppelklick genügt; der Browser öffnet sich von selbst.
+rem  CaseLocal starten. Doppelklick genügt; der Browser öffnet sich von selbst.
 rem
 rem  Prüft vorher, ob alles bereit ist (Einrichtung, Daten, Ollama, Modelle),
 rem  und startet Ollama bei Bedarf automatisch.
@@ -8,12 +8,12 @@ rem ======================================================================
 chcp 65001 >nul
 setlocal
 cd /d "%~dp0"
-title LexLokal
+title CaseLocal
 set "VPY=.venv\Scripts\python.exe"
 set "PYTHONUTF8=1"
 set "URL=http://localhost:8501"
 
-rem --- Läuft LexLokal schon? Dann nur den Browser öffnen -----------------
+rem --- Läuft CaseLocal schon? Dann nur den Browser öffnen -----------------
 curl -s -o nul %URL%/_stcore/health && (
     start "" %URL%
     exit /b 0
@@ -21,7 +21,7 @@ curl -s -o nul %URL%/_stcore/health && (
 
 rem --- Ist alles eingerichtet? -------------------------------------------
 if not exist "%VPY%" (
-    echo [Fehler] LexLokal ist noch nicht eingerichtet. Bitte zuerst setup.bat ausführen.
+    echo [Fehler] CaseLocal ist noch nicht eingerichtet. Bitte zuerst setup.bat ausführen.
     goto fehler
 )
 if not exist "daten\urteile.db" (
@@ -48,7 +48,7 @@ for /f "delims=" %%m in ('%VPY% -c "import config; print(config.EMBED_MODELL); p
 
 rem --- App starten -------------------------------------------------------
 echo.
-echo LexLokal startet - der Browser öffnet sich gleich mit %URL%
+echo CaseLocal startet - der Browser öffnet sich gleich mit %URL%
 echo Zum Beenden dieses Fenster schließen.
 echo.
 rem Im Hintergrund warten, bis die App antwortet, dann den Browser öffnen.

@@ -1,0 +1,2 @@
+# Windows-Startskripte brauchen Windows-Zeilenenden
+*.bat text eol=crlf

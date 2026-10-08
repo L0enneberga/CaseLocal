@@ -94,3 +94,4 @@ if __name__ == "__main__":
         main()
     except ConnectionError:
         print("Ollama ist nicht erreichbar. Läuft die Ollama-App? (Symbol unten rechts in der Taskleiste)")
+        raise SystemExit(1)                            # Fehlercode, damit setup.bat abbricht

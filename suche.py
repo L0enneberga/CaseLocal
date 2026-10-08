@@ -5,6 +5,7 @@
   hybride_suche     - kombiniert beide Trefferlisten zu einer
 
 Alle drei lassen sich mit einem Filter (Gerichtsbarkeit, Zeitraum) einschränken.
+Die Bedeutungssuche gewichtet die Urteilsteile (Gründe höher als Tatbestand).
 """
 import re
 import sqlite3
@@ -16,6 +17,7 @@ import chromadb
 import ollama
 
 import config
+import gliederung
 
 STOPPWOERTER = {"der", "die", "das", "und", "oder", "ein", "eine", "einer", "ist", "sind",
                 "wann", "wie", "was", "wer", "mit", "von", "für", "bei", "den",
@@ -76,20 +78,36 @@ def jahresspanne() -> tuple[int, int]:
     return int(von[:4]), int(bis[:4])
 
 
+def _begriff(begriff: str) -> str:
+    """Übersetzt EINEN Suchbegriff in FTS5-Syntax.
+
+    Normzitate bleiben als feste Wortfolge erhalten, die übrigen Wörter müssen
+    alle vorkommen, aber nicht direkt hintereinander:
+      "Kündigung"                      ->  "Kündigung"*
+      "häufige Krankheit"              ->  ("häufige"* AND "Krankheit"*)
+      "§ 1 KSchG Kündigung"            ->  ("1 KSchG" AND "Kündigung"*)
+    """
+    teile = []
+    for norm in re.findall(r"\d+[a-z]?\s+[A-ZÄÖÜ][\wÄÖÜäöüß]*", begriff):     # z. B. "573 BGB"
+        teile.append(f'"{norm}"')
+        begriff = begriff.replace(norm, " ")
+    for wort in re.sub(r"[^\w ]", " ", begriff).split():                  # Sonderzeichen entfernen
+        if len(wort) >= 3 and wort.lower() not in STOPPWOERTER and not wort.isdigit():
+            teile.append(f'"{wort}"*')
+    if len(teile) > 1:
+        return "(" + " AND ".join(teile) + ")"
+    return teile[0] if teile else ""
+
+
 def fts_anfrage(woerter: list[str]) -> str:
     """Baut aus Suchbegriffen eine FTS5-Anfrage.
 
     Beispiel: ["Eigenbedarf", "Kündigung"]  ->  "Eigenbedarf"* OR "Kündigung"*
     Das Sternchen ist eine Präfixsuche: "Eigenbedarf"* findet auch "Eigenbedarfskündigung".
+    Begriffe aus mehreren Wörtern siehe _begriff().
     """
-    teile = []
-    for wort in woerter:
-        wort = re.sub(r"[^\w§ ]", " ", wort).strip()   # Sonderzeichen entfernen
-        wort = re.sub(r"\s+", " ", wort)
-        if len(wort) < 3 or wort.lower() in STOPPWOERTER:
-            continue
-        teile.append(f'"{wort}"*')
-    return " OR ".join(teile)
+    teile = [_begriff(wort) for wort in woerter]
+    return " OR ".join(t for t in teile if t)
 
 
 def schlagwortsuche(woerter: list[str], anzahl: int = 10, filter: Filter | None = None) -> list[dict]:
@@ -115,7 +133,8 @@ def schlagwortsuche(woerter: list[str], anzahl: int = 10, filter: Filter | None 
 @lru_cache(maxsize=1)                                  # nur einmal öffnen, dann wiederverwenden
 def _sammlung():
     client = chromadb.PersistentClient(path=str(config.CHROMA_PFAD))
-    return client.get_or_create_collection(name="urteile", metadata={"hnsw:space": "cosine"})
+    return client.get_or_create_collection(name=config.CHROMA_SAMMLUNG,
+                                           metadata={"hnsw:space": "cosine"})
 
 
 def _erlaubte_ids(ids: list[int], filter: Filter) -> set[int]:
@@ -130,9 +149,34 @@ def _erlaubte_ids(ids: list[int], filter: Filter) -> set[int]:
     return {z[0] for z in zeilen}
 
 
-def semantische_suche(frage: str, anzahl: int = 10, filter: Filter | None = None) -> list[dict]:
+def einbetten(text: str) -> list[float]:
+    """Rechnet einen Text (z. B. die Frage) in ein Embedding um."""
+    return ollama.embed(model=config.EMBED_MODELL, input=text)["embeddings"][0]
+
+
+def _abschnitte_bewerten(ergebnis: dict) -> list[dict]:
+    """Macht aus einer ChromaDB-Antwort eine Liste von Abschnitten, beste zuerst.
+
+    Die Ähnlichkeit (1 - Abstand) wird mit dem Gewicht des Urteilsteils
+    multipliziert: Ein Abschnitt aus den Gründen zählt etwas mehr als einer
+    aus dem Tatbestand (siehe TEIL_GEWICHTE in config.py).
+    """
+    abschnitte = []
+    for aid, text, meta, abstand in zip(ergebnis["ids"][0], ergebnis["documents"][0],
+                                        ergebnis["metadatas"][0], ergebnis["distances"][0]):
+        teil = meta.get("teil", "Sonstiges")
+        abschnitte.append({
+            "urteil_id": meta["urteil_id"], "abschnitt_id": aid, "auszug": text, "teil": teil,
+            "rn_von": meta.get("rn_von", 0), "rn_bis": meta.get("rn_bis", 0),
+            "wert": (1 - abstand) * config.TEIL_GEWICHTE.get(teil, 1.0),
+        })
+    return sorted(abschnitte, key=lambda a: a["wert"], reverse=True)
+
+
+def semantische_suche(frage: str, anzahl: int = 10, filter: Filter | None = None,
+                      vektor: list[float] | None = None) -> list[dict]:
     filter = filter or Filter()
-    vektor = ollama.embed(model=config.EMBED_MODELL, input=frage)["embeddings"][0]
+    vektor = vektor or einbetten(frage)
     # Mehr Abschnitte holen als nötig, weil oft mehrere aus demselben Urteil kommen
     # und der Filter danach noch Urteile aussortiert.
     faktor = 4 if not filter.sql()[0] else 15
@@ -140,12 +184,47 @@ def semantische_suche(frage: str, anzahl: int = 10, filter: Filter | None = None
     ergebnis = sammlung.query(query_embeddings=[vektor],
                               n_results=min(anzahl * faktor, max(sammlung.count(), 1)))
     beste: dict[int, dict] = {}
-    for text, meta in zip(ergebnis["documents"][0], ergebnis["metadatas"][0]):
-        uid = meta["urteil_id"]
-        if uid not in beste:                           # nur den besten Abschnitt je Urteil behalten
-            beste[uid] = {"urteil_id": uid, "auszug": text}
+    for abschnitt in _abschnitte_bewerten(ergebnis):
+        beste.setdefault(abschnitt["urteil_id"], abschnitt)   # nur den besten Abschnitt je Urteil
     erlaubt = _erlaubte_ids(list(beste), filter)
     return [t for uid, t in beste.items() if uid in erlaubt][:anzahl]
+
+
+def _bester_abschnitt(urteil_id: int, vektor: list[float]) -> dict | None:
+    """Sucht den passendsten Abschnitt innerhalb eines bestimmten Urteils.
+
+    Wird für Urteile gebraucht, die nur die Schlagwortsuche gefunden hat.
+    """
+    ergebnis = _sammlung().query(query_embeddings=[vektor], n_results=5,
+                                 where={"urteil_id": urteil_id})
+    abschnitte = _abschnitte_bewerten(ergebnis)
+    return abschnitte[0] if abschnitte else None
+
+
+def zusammenfuegen(erster: str, zweiter: str) -> str:
+    """Hängt zwei aufeinanderfolgende Abschnitte aneinander, ohne die Überlappung doppelt."""
+    for laenge in range(min(len(erster), len(zweiter), config.CHUNK_UEBERLAPPUNG + 50), 20, -1):
+        if erster.endswith(zweiter[:laenge]):
+            return erster + zweiter[laenge:]
+    return erster + "\n\n" + zweiter
+
+
+def _umgebung(abschnitt_id: str) -> tuple[str, int, int]:
+    """Bester Abschnitt plus Vorgänger und Nachfolger als ein zusammenhängender Text.
+
+    Abschnitts-IDs haben die Form "325566-3" (Urteil 325566, Abschnitt 3).
+    Ergebnis: (Text, erste Randnummer, letzte Randnummer)
+    """
+    urteil_id, nr = abschnitt_id.rsplit("-", 1)
+    ids = [f"{urteil_id}-{n}" for n in (int(nr) - 1, int(nr), int(nr) + 1) if n >= 0]
+    gefunden = _sammlung().get(ids=ids)
+    stuecke = sorted(zip(gefunden["ids"], gefunden["documents"], gefunden["metadatas"]),
+                     key=lambda s: int(s[0].rsplit("-", 1)[1]))
+    text = ""
+    for _, dokument, _ in stuecke:
+        text = zusammenfuegen(text, dokument) if text else dokument
+    rn = [m.get(k, 0) for _, _, m in stuecke for k in ("rn_von", "rn_bis") if m.get(k, 0)]
+    return text, min(rn, default=0), max(rn, default=0)
 
 
 def hybride_suche(frage: str, schlagworte: list[str], anzahl: int = 8,
@@ -155,19 +234,23 @@ def hybride_suche(frage: str, schlagworte: list[str], anzahl: int = 8,
     Jedes Urteil bekommt pro Liste 1 / (60 + Platz) Punkte. Wer in beiden
     Listen weit oben steht, landet ganz oben. Die Zahl 60 ist der übliche
     Standardwert dieses Verfahrens.
+
+    Jeder Treffer bekommt außerdem seinen besten Abschnitt mit Fundstelle
+    (z. B. "Gründe, Rn. 15–17"), die Nachbarabschnitte sowie Leitsatz und Tenor.
     """
+    vektor = einbetten(frage)
     listen = {
-        "Bedeutung": semantische_suche(frage, anzahl * 2, filter),
+        "Bedeutung": semantische_suche(frage, anzahl * 2, filter, vektor),
         "Schlagwort": schlagwortsuche(schlagworte or frage.split(), anzahl * 2, filter),
     }
     punkte: dict[int, float] = {}
-    auszug: dict[int, str] = {}
+    beste: dict[int, dict] = {}
     quelle: dict[int, list[str]] = {}
     for name, liste in listen.items():
         for platz, t in enumerate(liste, 1):
             uid = t["urteil_id"]
             punkte[uid] = punkte.get(uid, 0) + 1 / (60 + platz)
-            auszug.setdefault(uid, t["auszug"])        # Abschnitt aus Bedeutungssuche bevorzugt
+            beste.setdefault(uid, t)                   # Abschnitt aus Bedeutungssuche bevorzugt
             quelle.setdefault(uid, []).append(name)
 
     rangliste = sorted(punkte, key=punkte.get, reverse=True)[:anzahl]
@@ -178,7 +261,25 @@ def hybride_suche(frage: str, schlagworte: list[str], anzahl: int = 8,
             if zeile is None:
                 continue
             eintrag = dict(zeile)
-            eintrag.pop("text")                        # Volltext wird hier nicht gebraucht
-            eintrag.update(auszug=auszug[uid], gefunden_durch=quelle[uid], punkte=punkte[uid])
+            volltext = eintrag.pop("text")
+            # Nur per Schlagwort gefunden? Dann den passendsten Abschnitt im Urteil suchen.
+            abschnitt = beste[uid] if "abschnitt_id" in beste[uid] else _bester_abschnitt(uid, vektor)
+            if abschnitt:
+                kontext, rn_von, rn_bis = _umgebung(abschnitt["abschnitt_id"])
+                fundstelle = gliederung.fundstelle(abschnitt["teil"], abschnitt["rn_von"],
+                                                   abschnitt["rn_bis"])
+                auszug = abschnitt["auszug"]
+            else:                                      # Urteil (noch) nicht im Bedeutungs-Index
+                kontext, rn_von, rn_bis = beste[uid]["auszug"], 0, 0
+                fundstelle, auszug = "Volltext", beste[uid]["auszug"]
+            eintrag.update(
+                auszug=auszug, fundstelle=fundstelle,
+                kontext=kontext, kontext_fundstelle=gliederung.fundstelle("Auszug", rn_von, rn_bis),
+                leitsatz=gliederung.teil_text(volltext, "Leitsatz"),
+                tenor=gliederung.teil_text(volltext, "Tenor"),
+                gefunden_durch=quelle[uid], punkte=punkte[uid],
+            )
             treffer.append(eintrag)
+    for nr, eintrag in enumerate(treffer, 1):
+        eintrag["nr"] = nr                             # die Nummer, mit der die Antwort zitiert: [nr]
     return treffer

@@ -12,6 +12,12 @@ Durchsuchbare Datenbank deutscher Gerichtsentscheidungen mit Schlagwortsuche, se
 
 ## Was das Projekt kann
 
+Der Schwerpunkt liegt auf **nachprüfbaren Antworten**: Das Sprachmodell soll nicht nur zusammenfassen, sondern zeigen, worauf sich jede Aussage stützt, und kenntlich machen, wo das nicht gelingt.
+
+- **Zitatprüfung gegen Halluzinationen**: Ein zweiter Durchgang prüft jeden Satz der Antwort gegen das Urteil, das er zitiert. Gestützte Aussagen erhalten ein Häkchen, teilweise oder nicht gestützte werden farbig markiert und begründet.
+- **Zweistufige Analyse**: Das Modell prüft zuerst jedes gefundene Urteil einzeln (beantwortet es die Frage? was wurde im konkreten Fall entschieden? welche Randnummer?) und sortiert unpassende aus. Erst aus diesen Einzelprüfungen entsteht die Antwort.
+- **Gegliederte Antwort nach juristischer Arbeitsweise**: Kurzantwort, einschlägige Normen, Rechtsprechung mit Randnummern, abweichende Entscheidungen und was die Urteile *nicht* beantworten. Einzelfall und Rechtssatz werden getrennt, höhere Instanzen und neuere Entscheidungen zuerst.
+- **Suche entlang der Urteilsgliederung**: Urteile werden an Tenor, Tatbestand und Gründen zerlegt, Randnummern bleiben erhalten. Die Gründe zählen bei der Suche mehr als der Parteivortrag im Tatbestand. Zu jedem Treffer bekommt das Modell Leitsatz, Tenor und den Kontext rund um die Fundstelle.
 - **Hybride Suche**: kombiniert klassische Volltextsuche (SQLite FTS5, BM25) mit semantischer Suche über Embeddings (ChromaDB), zusammengeführt per *Reciprocal Rank Fusion*.
 - **KI-Schlagworte**: ein lokales Sprachmodell übersetzt Fragen in juristische Suchbegriffe und verschlagwortet Urteile automatisch.
 - **Antworten mit Fundstellen (RAG)**: das Modell antwortet nur auf Grundlage der gefundenen Urteile und zitiert sie mit Nummer und Aktenzeichen.
@@ -26,18 +32,22 @@ Open Legal Data ──► daten_laden.py ──► SQLite (Metadaten + FTS5-Inde
                     index_bauen.py ───────┴──► ChromaDB (Embeddings via bge-m3)
                     schlagworte.py ──► LLM vergibt Schlagworte + Kurzfassung
 
-Frage ──► LLM: Suchbegriffe ──► hybride Suche ──► LLM: Antwort mit [Fundstellen] ──► Streamlit
+Frage ──► LLM: Suchbegriffe ──► hybride Suche ──► LLM: Einzelprüfung je Urteil
+                                                          │
+          Streamlit ◄── Zitatprüfung je Satz ◄── LLM: gegliederte Antwort mit [Fundstellen]
 ```
 
 | Datei | Aufgabe |
 | --- | --- |
 | `config.py` | Alle Einstellungen (Modelle, Pfade, Datenmenge) |
 | `daten_laden.py` | Lädt Urteile von Hugging Face in SQLite |
-| `index_bauen.py` | Teilt Urteile in Abschnitte, berechnet Embeddings |
+| `gliederung.py` | Erkennt Tenor, Tatbestand, Gründe und Randnummern |
+| `index_bauen.py` | Teilt Urteile entlang der Gliederung in Abschnitte, berechnet Embeddings |
 | `schlagworte.py` | Optional: KI-Verschlagwortung |
 | `suche.py` | Schlagwort-, semantische und hybride Suche, Filter |
 | `normen.py` | Erkennt Normzitate und verlinkt sie |
-| `llm.py` | Prompts und Aufrufe an das Sprachmodell |
+| `llm.py` | Prompts und Aufrufe an das Sprachmodell (Einzelprüfung, Antwort, Zitatprüfung) |
+| `belege.py` | Zerlegt die Antwort in Sätze und markiert, welche Aussagen belegt sind |
 | `app.py` | Weboberfläche (Streamlit) |
 | `tests/` | Automatische Tests (pytest), laufen bei jedem Push auf GitHub |
 
@@ -129,5 +139,7 @@ series = {JCDL '20}
 - Code dieses Repositorys: MIT-Lizenz.
 
 **Weitere offene Bausteine**, auf denen das Projekt aufsetzt: [Ollama](https://ollama.com), das Embedding-Modell [bge-m3](https://huggingface.co/BAAI/bge-m3) (BAAI), das Sprachmodell Gemma (Google DeepMind), [ChromaDB](https://www.trychroma.com), [SQLite](https://sqlite.org) und [Streamlit](https://streamlit.io).
+
+**Grenzen:** Auch die Zitatprüfung erfolgt durch ein Sprachmodell und kann sich irren. Sie macht Fehler sichtbar, garantiert aber keine Richtigkeit. Der Datenbestand ist eine Stichprobe.
 
 **Hinweis:** Demo-Projekt, keine Rechtsberatung. KI-Zusammenfassungen können Fehler enthalten – maßgeblich ist immer der Urteilstext.

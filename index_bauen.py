@@ -1,5 +1,10 @@
 """Schritt 2: Urteile in Abschnitte teilen, Embeddings berechnen, in ChromaDB speichern.
 
+Zerlegt wird entlang der Gliederung des Urteils (Leitsatz, Tenor, Tatbestand,
+Gründe). Jeder Abschnitt merkt sich, aus welchem Teil er stammt und welche
+Randnummern er enthält. So kann die Suche Gründe höher gewichten und die
+Antwort mit Randnummern zitieren.
+
 Aufruf:  python index_bauen.py
 
 Voraussetzung: Ollama läuft und das Embedding-Modell ist geladen
@@ -14,6 +19,7 @@ import chromadb
 import ollama
 
 import config
+import gliederung
 
 
 def in_abschnitte_teilen(text: str) -> list[str]:
@@ -40,11 +46,45 @@ def in_abschnitte_teilen(text: str) -> list[str]:
     return abschnitte[: config.MAX_CHUNKS_PRO_URTEIL]
 
 
+# Reihenfolge beim Kürzen sehr langer Urteile: zuerst fallen Teile mit hoher Zahl weg.
+VORRANG = {"Leitsatz": 0, "Tenor": 0, "Gründe": 1, "Tatbestand": 2,
+           "Verfahrensgang": 3, "Sonstiges": 3}
+
+
+def abschnitte_bilden(text: str) -> list[dict]:
+    """Zerlegt ein Urteil Teil für Teil in Abschnitte, jeweils mit Teil und Randnummern.
+
+    Ergebnis z. B.: [{"text": "...", "teil": "Gründe", "rn_von": 15, "rn_bis": 17}, ...]
+    Bei sehr langen Urteilen werden zuerst Tatbestand und Sonstiges gekürzt,
+    damit Tenor und Gründe vollständig im Index landen.
+    """
+    abschnitte = []
+    for teil, inhalt in gliederung.teile_erkennen(text):
+        letzte_rn = 0
+        for stueck in in_abschnitte_teilen(inhalt):
+            rn = gliederung.randnummern(stueck)
+            # Beginnt der Abschnitt mitten in einem Absatz, gehört sein Anfang
+            # noch zur Randnummer, mit der der vorige Abschnitt endete.
+            if letzte_rn and not gliederung.RANDNUMMER.match(stueck):
+                rn = [letzte_rn] + rn
+            if rn:
+                letzte_rn = rn[-1]
+            abschnitte.append({"text": stueck, "teil": teil,
+                               "rn_von": rn[0] if rn else 0, "rn_bis": rn[-1] if rn else 0})
+    if len(abschnitte) > config.MAX_CHUNKS_PRO_URTEIL:
+        wichtigste = sorted(range(len(abschnitte)),
+                            key=lambda i: (VORRANG[abschnitte[i]["teil"]], i))
+        behalten = sorted(wichtigste[: config.MAX_CHUNKS_PRO_URTEIL])   # Reihenfolge wie im Urteil
+        abschnitte = [abschnitte[i] for i in behalten]
+    return abschnitte
+
+
 def sammlung_oeffnen():
     """Öffnet (oder erstellt) die Vektor-Datenbank im Ordner daten/chroma."""
     client = chromadb.PersistentClient(path=str(config.CHROMA_PFAD))
     # "cosine": Ähnlichkeit wird über den Winkel zwischen den Zahlenreihen gemessen
-    return client.get_or_create_collection(name="urteile", metadata={"hnsw:space": "cosine"})
+    return client.get_or_create_collection(name=config.CHROMA_SAMMLUNG,
+                                           metadata={"hnsw:space": "cosine"})
 
 
 def embeddings_berechnen(texte: list[str]) -> list[list[float]]:
@@ -63,7 +103,7 @@ def main() -> None:
 
     start = time.time()
     for nr, (urteil_id, gericht, datum, aktenzeichen, text) in enumerate(urteile, 1):
-        abschnitte = in_abschnitte_teilen(text)
+        abschnitte = abschnitte_bilden(text)
         # Geprüft wird der LETZTE Abschnitt: Wurde mitten in einem Urteil abgebrochen,
         # fehlt er noch, und das Urteil wird beim nächsten Start vervollständigt.
         if sammlung.get(ids=[f"{urteil_id}-{len(abschnitte) - 1}"])["ids"]:
@@ -73,12 +113,13 @@ def main() -> None:
             paket = abschnitte[i : i + config.EMBED_BATCH]
             sammlung.upsert(                           # upsert: vorhandene Abschnitte überschreiben
                 ids=[f"{urteil_id}-{i + k}" for k in range(len(paket))],
-                embeddings=embeddings_berechnen(paket),
-                documents=paket,
+                embeddings=embeddings_berechnen([a["text"] for a in paket]),
+                documents=[a["text"] for a in paket],
                 metadatas=[
-                    {"urteil_id": urteil_id, "gericht": gericht,
-                     "datum": datum, "aktenzeichen": aktenzeichen}
-                    for _ in paket
+                    {"urteil_id": urteil_id, "gericht": gericht or "", "datum": datum or "",
+                     "aktenzeichen": aktenzeichen or "", "teil": a["teil"],
+                     "rn_von": a["rn_von"], "rn_bis": a["rn_bis"]}
+                    for a in paket
                 ],
             )
 

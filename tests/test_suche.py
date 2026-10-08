@@ -12,7 +12,12 @@ def test_fts_anfrage_entfernt_stoppwoerter_und_kurze_woerter():
 
 def test_fts_anfrage_entfernt_sonderzeichen():
     # Anführungszeichen würden die FTS5-Anfrage sonst kaputt machen
-    assert fts_anfrage(['"Kündigung"', "§ 573 BGB"]) == '"Kündigung"* OR "§ 573 BGB"*'
+    assert fts_anfrage(['"Kündigung"', "§ 573 BGB"]) == '"Kündigung"* OR "573 BGB"'
+
+
+def test_fts_anfrage_mehrere_woerter_muessen_alle_vorkommen():
+    assert fts_anfrage(["häufige Krankheit"]) == '("häufige"* AND "Krankheit"*)'
+    assert fts_anfrage(["§ 1 KSchG Kündigung"]) == '("1 KSchG" AND "Kündigung"*)'
 
 
 def test_fts_anfrage_leer():

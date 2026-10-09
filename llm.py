@@ -50,7 +50,9 @@ Gliedere die Antwort genau so:
 Stichpunkte: Norm – wofür sie hier eine Rolle spielt [n].
 
 **3. Rechtsprechung**
-Ein Stichpunkt je Urteil: Gericht, Datum, Aktenzeichen – was das Gericht im konkreten Fall entschieden hat und warum (Rn. x) [n].
+Ein Stichpunkt je Urteil, er beginnt mit der Nummer des Urteils:
+- [n] – was das Gericht im konkreten Fall entschieden hat und warum (Rn. x).
+Schreibe Gericht, Datum und Aktenzeichen NICHT selbst, sie werden automatisch aus der Datenbank eingesetzt.
 
 **4. Abweichende oder einschränkende Entscheidungen**
 Urteile, die anders entscheiden oder die Aussage einschränken. Steht im Material ein
@@ -66,6 +68,7 @@ Regeln:
 - Trenne Einzelfall und Rechtssatz: "Im konkreten Fall entschied das Gericht ..." ist etwas anderes als "Das Gericht stellt den Grundsatz auf, dass ...". Formuliere keine allgemeinen Rechtssätze, die nicht im Material stehen.
 - Berücksichtige Instanz, Bedeutung und Datum: Entscheidungen oberster Gerichte (BVerfG, BGH, BAG, BVerwG, BSG, BFH, EuGH) vor denen der Instanzgerichte, häufig zitierte vor selten zitierten, neuere vor älteren.
 - Schreibe einem Gericht nur zu, was es selbst entschieden hat – nicht die Ansicht der Vorinstanz oder der Parteien, die es nur wiedergibt. Randnummern mit [Wiedergabe der Vorinstanz] sind nie die Auffassung des zitierten Gerichts.
+- Nenne Daten und Aktenzeichen der Urteile nirgends selbst, verweise immer mit [n].
 - Erfinde keine Urteile, Aktenzeichen oder Normen.
 - Sachlich, auf Deutsch, höchstens 450 Wörter. Dies ist keine Rechtsberatung."""
 
@@ -113,12 +116,18 @@ def frage_zu_schlagworten(frage: str) -> list[str]:
 
 # --- Material für das LLM ---------------------------------------------------
 
+def datum_deutsch(iso: str) -> str:
+    """"2016-08-11" -> "11.08.2016" """
+    jahr, monat, tag = (iso or "").split("-") if (iso or "").count("-") == 2 else ("", "", "")
+    return f"{tag}.{monat}.{jahr}" if jahr else iso
+
+
 def kopf(t: dict) -> str:
     """Kopfzeile eines Treffers, z. B.
-    "[2] Bundesgerichtshof, Urteil vom 2023-07-20, Az. III ZR 303/20 (Oberstes Gericht, zitiert von 912 Entscheidungen)"
+    "[2] Bundesgerichtshof, Urteil vom 20.07.2023, Az. III ZR 303/20 (Oberstes Gericht, zitiert von 912 Entscheidungen)"
     """
     zeile = (f"[{t['nr']}] {t['gericht'] or 'Gericht unbekannt'}, {t['typ'] or 'Entscheidung'} "
-             f"vom {t['datum']}, Az. {t['aktenzeichen']}")
+             f"vom {datum_deutsch(t['datum'])}, Az. {t['aktenzeichen']}")
     angaben = [t.get("instanz") or ""]
     if t.get("zitiert_von"):
         angaben.append(f"zitiert von {t['zitiert_von']} Entscheidungen")

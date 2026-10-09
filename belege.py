@@ -117,6 +117,72 @@ def pruefen(antwort: str, treffer: list[dict], fortschritt=None) -> list[dict]:
     return aussagen
 
 
+# --- Gericht, Datum und Aktenzeichen in der Antwort ----------------------------
+
+MONATE = {"januar": 1, "februar": 2, "märz": 3, "april": 4, "mai": 5, "juni": 6, "juli": 7,
+          "august": 8, "september": 9, "oktober": 10, "november": 11, "dezember": 12}
+DATUM = re.compile(r"\b(\d{1,2})\.\s?(?:(\d{1,2})\.|(" + "|".join(MONATE) + r")\s)\s?(\d{4})\b"
+                   r"|\b(\d{4})-(\d{2})-(\d{2})\b", re.IGNORECASE)
+# "8 AZR 4/15", "VIII ZR 232/15", "1 BvL 7/16", "2 StR 519/20"
+AKTENZEICHEN = re.compile(r"\b(?:[IVX]+[a-z]?|\d{1,2})\s+[A-Z][A-Za-z]{1,4}\s+\d{1,4}/\d{2}\b")
+
+
+def daten_finden(text: str) -> list[tuple[str, str]]:
+    """Alle Datumsangaben im Text als (Fundtext, JJJJ-MM-TT).
+
+    Erkennt "11.08.2016", "11. August 2016" und "2016-08-11".
+    """
+    gefunden = []
+    for m in DATUM.finditer(text):
+        if m[5]:
+            iso = f"{m[5]}-{m[6]}-{m[7]}"
+        else:
+            monat = int(m[2]) if m[2] else MONATE[m[3].lower()]
+            iso = f"{m[4]}-{monat:02d}-{int(m[1]):02d}"
+        gefunden.append((m[0], iso))
+    return gefunden
+
+
+def _az(aktenzeichen: str) -> str:
+    return " ".join((aktenzeichen or "").split())
+
+
+def _material(t: dict) -> str:
+    """Der Text, den das LLM über ein Urteil gesehen hat (dort zitierte Daten sind erlaubt)."""
+    return " ".join(str(t.get(feld) or "") for feld in ("leitsatz", "tenor", "kontext", "bewertung"))
+
+
+def metadaten_abweichungen(antwort: str, treffer: list[dict]) -> list[dict]:
+    """Findet Daten und Aktenzeichen in der Antwort, die nicht zum zitierten Urteil passen.
+
+    Erlaubt ist, was zum Kopf eines zitierten Urteils gehört oder in dessen Material steht
+    (Urteile zitieren andere Urteile). Ergebnis je Fund:
+    {"satz", "art": "Datum" | "Aktenzeichen", "gefunden", "richtig" (nur bei genau einer Quelle), "nr"}
+    """
+    nach_nr = {t["nr"]: t for t in treffer}
+    abweichungen = []
+    for aussage in aussagen_finden(antwort):
+        zitierte = [nach_nr[n] for n in aussage["quellen"] if n in nach_nr]
+        if not zitierte:
+            continue
+        einzige = zitierte[0] if len(zitierte) == 1 else None
+        material = " ".join(_material(t) for t in zitierte)
+        erlaubte_daten = {t["datum"] for t in zitierte} | {iso for _, iso in daten_finden(material)}
+        for fund, iso in daten_finden(aussage["satz"]):
+            if iso not in erlaubte_daten:
+                abweichungen.append({"satz": aussage["satz"], "art": "Datum", "gefunden": fund,
+                                     "richtig": llm.datum_deutsch(einzige["datum"]) if einzige else None,
+                                     "nr": einzige["nr"] if einzige else None})
+        erlaubte_az = {_az(t["aktenzeichen"]) for t in zitierte} | {
+            _az(a) for a in AKTENZEICHEN.findall(material)}
+        for fund in AKTENZEICHEN.findall(aussage["satz"]):
+            if _az(fund) not in erlaubte_az:
+                abweichungen.append({"satz": aussage["satz"], "art": "Aktenzeichen", "gefunden": fund,
+                                     "richtig": einzige["aktenzeichen"] if einzige else None,
+                                     "nr": einzige["nr"] if einzige else None})
+    return abweichungen
+
+
 def _maskieren(satz: str) -> str:
     """Eckige Klammern maskieren, damit Streamlits Farbsyntax :farbe[...] nicht durcheinanderkommt."""
     return satz.replace("[", "\\[").replace("]", "\\]")

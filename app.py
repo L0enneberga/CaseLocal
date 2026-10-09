@@ -17,6 +17,7 @@ import streamlit as st
 import abweichung
 import belege
 import config
+import ergaenzung
 import gliederung
 import llm
 import normen
@@ -108,7 +109,7 @@ def recherchieren(frage: str) -> dict:
     Neuzeichnen der Seite (z. B. nach einem Klick in der Seitenleiste) erhalten bleibt.
     """
     e = {"frage": frage, "treffer": [], "auswahl": [], "pruefungen": None,
-         "antwort": None, "aussagen": None}
+         "antwort": None, "aussagen": None, "korrekturen": []}
 
     with st.status("Suche passende Urteile …", type="step") as status:
         e["schlagworte"] = llm.frage_zu_schlagworten(frage) if ki_schlagworte else frage.split()
@@ -144,8 +145,9 @@ def recherchieren(frage: str) -> dict:
 
     # Stufe 2: gegliederte Antwort, live angezeigt
     st.subheader("Antwort")
-    e["antwort"] = belege.rn_klammern(
-        st.write_stream(llm.antwort_streamen(frage, e["auswahl"], e["pruefungen"])))
+    roh = st.write_stream(llm.antwort_streamen(frage, e["auswahl"], e["pruefungen"]))
+    ergaenzt = ergaenzung.antwort_ergaenzen(roh, e["treffer"], e["pruefungen"])
+    e["antwort"], e["korrekturen"] = ergaenzt["antwort"], ergaenzt["korrekturen"]
 
     # Zitatprüfung
     if zitatpruefung:
@@ -173,11 +175,14 @@ def antwort_anzeigen(e: dict) -> None:
                    f":orange[:material/help:] {z['teilweise']} teilweise gestützt · "
                    f":red[:material/close:] {z['nein']} nicht gestützt"
                    + (f" · :gray[:material/question_mark:] {z['unklar']} unklar" if z["unklar"] else ""))
-        offen = [a for a in e["aussagen"] if a["urteil"] != "ja"]
-        if offen:
-            with st.expander(f"Hinweise der Zitatprüfung ({len(offen)})", icon=":material/rule:"):
-                for a in offen:
-                    st.markdown(f"- *{a['satz']}*  \n  " + " ".join(a["hinweise"]))
+    offen = [a for a in e["aussagen"] or [] if a["urteil"] != "ja"]
+    korrekturen = e.get("korrekturen") or []
+    if offen or korrekturen:
+        with st.expander(f"Hinweise der Zitatprüfung ({len(offen) + len(korrekturen)})", icon=":material/rule:"):
+            for k in korrekturen:
+                st.markdown(f"- :blue[:material/edit:] *{k['satz']}*  \n  {k['hinweis']}")
+            for a in offen:
+                st.markdown(f"- *{a['satz']}*  \n  " + " ".join(a["hinweise"]))
     st.caption(f"KI-generiert auf Grundlage der Treffer [1] bis [{len(e['auswahl'])}]. "
                "Auch die Zitatprüfung erfolgt durch das Sprachmodell und kann irren – "
                "maßgeblich ist immer der Urteilstext.")

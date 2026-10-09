@@ -2,13 +2,21 @@
 
 [![Tests](https://github.com/L0enneberga/CaseLocal/actions/workflows/tests.yml/badge.svg)](https://github.com/L0enneberga/CaseLocal/actions/workflows/tests.yml)
 
-Durchsuchbare Datenbank deutscher Gerichtsentscheidungen mit Schlagwortsuche, semantischer Suche und KI-Zusammenfassung. **Alles läuft lokal**: Kein Text verlässt den Rechner, und es entstehen keine API-Kosten.
+Recherche in den 10.000 bedeutendsten deutschen Gerichtsentscheidungen – mit hybrider Suche, gegliederter KI-Antwort und einer Zitatprüfung, die nicht belegte Aussagen sichtbar macht. **Alles läuft lokal**: Kein Text verlässt den Rechner, und es entstehen keine API-Kosten.
 
 > **Datengrundlage:** CaseLocal nutzt den Urteilsdatensatz von [Open Legal Data](https://openlegaldata.io) (Ostendorff, Blume & Ostendorff, 2020). Das Sammeln, Aufbereiten und offene Bereitstellen von über 400.000 Gerichtsentscheidungen ist ihre Arbeit, nicht meine. Herzlichen Dank dafür! Details und Zitat: [Datengrundlage und Dank](#datengrundlage-und-dank).
 
-![Suche mit KI-Zusammenfassung](docs/screenshot1.png)
+**Gegliederte Antwort:** Kurzantwort, einschlägige Normen und Rechtsprechung mit Randnummern. Jede belegte Aussage ist gegen das zitierte Urteil geprüft (✓).
 
-![Gefundene Urteile mit Fundstellen](docs/screenshot2.png)
+![Gegliederte KI-Antwort mit geprüften Belegen](docs/screenshot1.png)
+
+**Zitatprüfung:** Teilweise gestützte Aussagen werden orange, nicht gestützte rot markiert. Die Treffer zeigen Instanz, Zitierhäufigkeit und Jahr.
+
+![Zitatprüfung markiert nicht belegte Aussagen](docs/screenshot2.png)
+
+**Fundstelle im Urteil:** der passende Abschnitt der Gründe mit Randnummern und verlinkten Normen.
+
+![Fundstelle mit Randnummern und verlinkten Normen](docs/screenshot3.png)
 
 ## Was das Projekt kann
 
@@ -116,7 +124,7 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-Die Tests prüfen die Bausteine, die ohne Daten und ohne Ollama funktionieren: FTS5-Anfragen, Filter, das Zerlegen in Abschnitte und das Erkennen von Normzitaten.
+Die Tests prüfen die Bausteine, die ohne Daten und ohne Ollama funktionieren: Bedeutungs-Score und Kontingente der Auswahl, Erkennen der Urteilsgliederung und Randnummern, Zerlegen in Abschnitte, FTS5-Anfragen, Filter und Rangfolge, Satzzerlegung und Markierung der Zitatprüfung, Vorauswahl für Rechtsprechungsänderungen und das Erkennen von Normzitaten.
 
 ## Datengrundlage und Dank
 

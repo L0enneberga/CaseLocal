@@ -138,21 +138,26 @@ def aenderungen_block(gruppen: list[dict]) -> str:
 def _ohne_doppelte(bezuege: list[dict]) -> list[dict]:
     """Jeder Fund nur einmal; der allgemeine Verweis "EuGH" entfällt, wenn ein genauerer da ist."""
     eindeutig = list({(b["art"], b["fund"]): b for b in reversed(bezuege)}.values())[::-1]
-    if any(b["art"] in ("Vorlagebeschluss", "EuGH-Rechtssache") for b in eindeutig):
+    if any(b["art"] in ("Vorlage", "Vorlagebeschluss", "EuGH-Rechtssache") for b in eindeutig):
         eindeutig = [b for b in eindeutig if b["art"] != "Rechtsprechung des EuGH"]
     return eindeutig
 
 
 def unionsrecht_finden(t: dict, randnummern: list[int] | None = None) -> list[dict]:
-    """Unionsrechtliche Bezüge im Auszug eines Treffers.
+    """Unionsrechtliche Bezüge eines Treffers: in Leitsatz und Tenor sowie im Auszug.
 
-    Hat die Einzelprüfung Randnummern genannt, zählen nur Bezüge in genau diesen
+    Hat die Einzelprüfung Randnummern genannt, zählen im Auszug nur Bezüge in genau diesen
     Randnummern - dort steht die Begründung, auf die sich die Antwort stützt.
+    Ist der Treffer selbst eine Vorlage an den EuGH, steht das an erster Stelle.
     """
     text = "\n\n".join(str(t.get(feld) or "") for feld in ("kontext", "bewertung"))
     bezuege = normen.unionsrecht_bezuege(text)
     if randnummern:
         bezuege = [b for b in bezuege if b["rn"] in randnummern]
+    kopf = "\n\n".join(str(t.get(feld) or "") for feld in ("leitsatz", "tenor"))
+    bezuege = [{**b, "rn": 0} for b in normen.unionsrecht_bezuege(kopf)] + bezuege
+    if "vorlage" in (t.get("typ") or "").lower():
+        bezuege.insert(0, {"art": "Vorlage", "fund": "", "rn": 0})
     return _ohne_doppelte(bezuege)
 
 
@@ -164,8 +169,10 @@ def _bezug_text(b: dict) -> str:
         fund = f"[{fund}](https://de.openlegaldata.io/case/{im_bestand['slug']})"
     elif b["art"] == "EuGH-Rechtssache":
         fund = f"[{fund}]({normen.curia_url(fund)})"
-    if b["art"] == "Rechtsprechung des EuGH":
-        text = "Verweis auf Rechtsprechung des EuGH"
+    if b["art"] == "Vorlage":
+        text = "Die Entscheidung ist selbst eine Vorlage an den EuGH"
+    elif b["art"] in ("Richtlinie", "Rechtsprechung des EuGH"):
+        text = fund if b["art"] == "Richtlinie" else "Verweis auf Rechtsprechung des EuGH"
     elif b["art"] == "Vorabentscheidungsverfahren":
         text = f"Vorabentscheidungsverfahren („{fund}“)"
     else:

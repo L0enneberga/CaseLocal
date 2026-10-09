@@ -162,3 +162,12 @@ def test_unionsrecht_aus_der_originalstelle_der_aenderung(monkeypatch):
     treffer[1]["abweichungen"][0]["stelle"] = "(ua. BAG 18. Juni 2015 - 8 AZR 848/13 (A) - Rn. 24; 8 AZR 285/11)"
     block = unionsrecht_block(treffer, None, abweichung.entwicklung(treffer))
     assert "> - [1] 8 AZR 4/15, Stelle zur Rechtsprechungsänderung: Vorlagebeschluss 8 AZR 848/13 (A)" in block
+
+
+def test_vorlage_an_den_eugh_wird_als_solche_erkannt():
+    t = {"nr": 2, "aktenzeichen": "I ZR 7/16", "typ": "EuGH-Vorlage", "kontext": "",
+         "tenor": "II. Dem Gerichtshof der Europäischen Union werden zur Auslegung der Richtlinie 2002/58/EG "
+                  "folgende Fragen vorgelegt:"}
+    block = unionsrecht_block([t])
+    assert "> - [2] I ZR 7/16: Die Entscheidung ist selbst eine Vorlage an den EuGH; Richtlinie 2002/58/EG" in block
+    assert "Richtlinie Richtlinie" not in block and "Verweis auf Rechtsprechung des EuGH" not in block

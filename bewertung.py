@@ -2,6 +2,7 @@
 
 Aufruf:  python bewertung.py --name vorher
          python bewertung.py --name nachher --nur 3      (nur die ersten 3 Fragen)
+         python bewertung.py --name denken --denken-pruefung ja   (Denkmodus in den Prüfschritten)
 
 Jede Frage läuft durch dieselbe Kette wie in der App (mit gründlicher Analyse,
 Rechtsprechungsänderungen und Zitatprüfung). Gemessen wird pro Frage:
@@ -57,7 +58,7 @@ def frage_bewerten(gold: dict) -> dict:
         "metadaten_fehler_roh": len(belege.metadaten_abweichungen(belege.rn_klammern(roh), treffer)),
         "korrekturen": ergaenzt["korrekturen"],
         "rechtsprechungsaenderungen": [
-            {"aendernd": g["aendernd"]["aktenzeichen"], "nr": g["aendernd"].get("nr"),
+            {"aendernd": [a["aktenzeichen"] for a in g["aendernd"]], "nr": g["aendernd"][0].get("nr"),
              "dort_zitiert": [b["treffer"]["aktenzeichen"] for b in g["betroffen"]]}
             for g in ergaenzt["entwicklung"]],
         "unionsrecht": [z for z in antwort.split("\n") if z.startswith("> - [") and "Unionsrecht" not in z
@@ -92,7 +93,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--name", required=True, help="Name des Durchlaufs, z. B. vorher")
     parser.add_argument("--nur", type=int, help="nur die ersten N Fragen")
+    parser.add_argument("--denken-pruefung", choices=["ja", "nein"],
+                        help="Denkmodus in den Prüfschritten (überschreibt config.DENKEN_PRUEFUNG)")
     argumente = parser.parse_args()
+    if argumente.denken_pruefung:
+        config.DENKEN_PRUEFUNG = argumente.denken_pruefung == "ja"
 
     goldfragen = json.loads(GOLDFRAGEN.read_text(encoding="utf-8"))[: argumente.nur]
     ergebnisse = []
@@ -104,6 +109,7 @@ def main() -> None:
               f" · {gold['aktenzeichen']}", flush=True)
 
     gesamt = zusammenfassen(ergebnisse)
+    gesamt.update(modell=config.LLM_MODELL, denken_pruefung=config.DENKEN_PRUEFUNG)
     AUSGABE.mkdir(parents=True, exist_ok=True)
     datei = AUSGABE / f"{argumente.name}.json"
     datei.write_text(json.dumps({"gesamt": gesamt, "fragen": ergebnisse}, ensure_ascii=False, indent=2),

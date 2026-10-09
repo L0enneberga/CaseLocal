@@ -92,15 +92,18 @@ Lies den Anfang des Urteils und antworte ausschließlich als JSON:
  "kurzfassung": "1 bis 2 Sätze: Worum ging es, wie wurde entschieden?"}"""
 
 
-def json_chat(system: str, nutzer: str) -> dict:
-    """Hilfsfunktion: fragt das LLM und erzwingt eine JSON-Antwort."""
+def json_chat(system: str, nutzer: str, denken: bool = False) -> dict:
+    """Hilfsfunktion: fragt das LLM und erzwingt eine JSON-Antwort.
+
+    denken=True schaltet den Denkmodus ein (für Prüfaufgaben, siehe config.DENKEN_PRUEFUNG).
+    """
     antwort = ollama.chat(
         model=config.LLM_MODELL,
         messages=[{"role": "system", "content": system},
                   {"role": "user", "content": nutzer}],
         format="json",                                  # Ollama erzwingt gültiges JSON
         options={"temperature": 0, "num_ctx": config.LLM_KONTEXT},
-        think=config.LLM_DENKEN,
+        think=denken,
     )
     try:
         daten = json.loads(antwort["message"]["content"])
@@ -198,7 +201,7 @@ def pruefung_bereinigen(daten: dict) -> dict:
 def urteil_pruefen(frage: str, t: dict) -> dict:
     """Stufe 1: Beantwortet dieses Urteil die Frage? Was genau wurde entschieden?"""
     nachricht = f"Frage: {frage}\n\nUrteil:\n{urteil_kontext(t)}"
-    return pruefung_bereinigen(json_chat(PROMPT_PRUEFUNG, nachricht))
+    return pruefung_bereinigen(json_chat(PROMPT_PRUEFUNG, nachricht, denken=config.DENKEN_PRUEFUNG))
 
 
 def notiz(t: dict, pruefung: dict) -> str:
@@ -237,7 +240,7 @@ def antwort_streamen(frage: str, treffer: list[dict], pruefungen: dict[int, dict
         messages=[{"role": "system", "content": PROMPT_ANTWORT},
                   {"role": "user", "content": nachricht}],
         options={"temperature": 0.2, "num_ctx": config.LLM_KONTEXT},
-        think=config.LLM_DENKEN,
+        think=config.DENKEN_ANTWORT,
         stream=True,
     ):
         yield stueck["message"]["content"]
@@ -252,7 +255,7 @@ def aussagen_pruefen(t: dict, aussagen: list[str]) -> list[dict]:
     """
     liste = "\n".join(f"{i}. {a}" for i, a in enumerate(aussagen, 1))
     nachricht = f"Urteil:\n{urteil_kontext(t)}\n\nAussagen:\n{liste}"
-    daten = json_chat(PROMPT_ZITATPRUEFUNG, nachricht)
+    daten = json_chat(PROMPT_ZITATPRUEFUNG, nachricht, denken=config.DENKEN_PRUEFUNG)
     ergebnisse = [{"urteil": "unklar", "hinweis": "Keine Bewertung erhalten."} for _ in aussagen]
     for eintrag in daten.get("pruefung") or []:
         if not isinstance(eintrag, dict):

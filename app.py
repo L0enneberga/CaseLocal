@@ -178,8 +178,8 @@ def antwort_anzeigen(e: dict) -> None:
     if e.get("entwicklung"):
         with st.expander("Originalstellen zur Rechtsprechungsänderung", icon=":material/history:"):
             for g in e["entwicklung"]:
-                u = g["aendernd"]
                 for b in g["betroffen"]:
+                    u = b["von"]
                     st.markdown(f"**{u['aktenzeichen']}** zitiert **[{b['treffer']['nr']}] "
                                 f"{b['treffer']['aktenzeichen']}** – [Volltext]"
                                 f"(https://de.openlegaldata.io/case/{u['slug']})\n\n> „…{b['stelle']}…“")

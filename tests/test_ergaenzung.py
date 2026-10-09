@@ -94,7 +94,7 @@ def test_aendernde_und_betroffene_entscheidung_getrennt(monkeypatch):
     treffer = zwei_treffer(monkeypatch)
     assert treffer[1]["abweichungen"][0]["nr"] == 1          # die ändernde Entscheidung ist Treffer [1]
     gruppen = abweichung.entwicklung(treffer)
-    assert len(gruppen) == 1 and gruppen[0]["aendernd"]["nr"] == 1
+    assert len(gruppen) == 1 and gruppen[0]["aendernd"][0]["nr"] == 1
     assert [b["treffer"]["nr"] for b in gruppen[0]["betroffen"]] == [2]
     block = aenderungen_block(gruppen)
     assert "**Ändernde Entscheidung:** [1] Bundesarbeitsgericht, Urt. v. 11.08.2016 – 8 AZR 4/15" in block
@@ -141,3 +141,24 @@ def test_unionsrecht_block_nur_aus_zitierten_randnummern(monkeypatch):
     assert "Verweis auf Rechtsprechung des EuGH" not in block                # genauerer Verweis vorhanden
     assert "nicht im Bestand" in block
     assert unionsrecht_block([t], {1: {"relevant": True, "randnummern": [37]}}) == ""
+
+
+def test_serienentscheidungen_werden_zusammengefasst(monkeypatch):
+    import abweichung
+    treffer = zwei_treffer(monkeypatch)
+    zweite = {**treffer[1]["abweichungen"][0], "id": 11, "nr": None, "aktenzeichen": "8 AZR 809/14",
+              "slug": "bag-8-azr-809-14"}
+    treffer[1]["abweichungen"].append(zweite)                 # gleicher Tag, gleiche zitierte Treffer
+    gruppen = abweichung.entwicklung(treffer)
+    assert len(gruppen) == 1 and [a["aktenzeichen"] for a in gruppen[0]["aendernd"]] == ["8 AZR 4/15", "8 AZR 809/14"]
+    assert "**Ändernde Entscheidungen** (gleichlautende Serie): [1] Bundesarbeitsgericht" in aenderungen_block(gruppen)
+
+
+def test_unionsrecht_aus_der_originalstelle_der_aenderung(monkeypatch):
+    import abweichung
+    import suche
+    monkeypatch.setattr(suche, "urteil_nach_aktenzeichen", lambda az: None)
+    treffer = zwei_treffer(monkeypatch)
+    treffer[1]["abweichungen"][0]["stelle"] = "(ua. BAG 18. Juni 2015 - 8 AZR 848/13 (A) - Rn. 24; 8 AZR 285/11)"
+    block = unionsrecht_block(treffer, None, abweichung.entwicklung(treffer))
+    assert "> - [1] 8 AZR 4/15, Stelle zur Rechtsprechungsänderung: Vorlagebeschluss 8 AZR 848/13 (A)" in block

@@ -126,11 +126,21 @@ def aenderungen_block(gruppen: list[dict]) -> str:
         frueher = "; ".join(_verweis(b["treffer"]) for b in g["betroffen"])
         ob = ("Ob diese Entscheidungen die alte oder die neue Linie vertreten" if len(g["betroffen"]) > 1
               else "Ob diese Entscheidung die alte oder die neue Linie vertritt")
+        aendernd = ("**Ändernde Entscheidung:**" if len(g["aendernd"]) == 1
+                    else "**Ändernde Entscheidungen** (gleichlautende Serie):")
         zeilen += [">",
-                   f"> - **Ändernde Entscheidung:** {_verweis(g['aendernd'])}"
+                   f"> - {aendernd} " + "; ".join(_verweis(a) for a in g["aendernd"])
                    + (f". {erklaerung}" if erklaerung else ""),
                    f"> - **Dort zitiert:** {frueher}. {ob}, zeigt die Originalstelle."]
     return "\n".join(zeilen)
+
+
+def _ohne_doppelte(bezuege: list[dict]) -> list[dict]:
+    """Jeder Fund nur einmal; der allgemeine Verweis "EuGH" entfällt, wenn ein genauerer da ist."""
+    eindeutig = list({(b["art"], b["fund"]): b for b in reversed(bezuege)}.values())[::-1]
+    if any(b["art"] in ("Vorlagebeschluss", "EuGH-Rechtssache") for b in eindeutig):
+        eindeutig = [b for b in eindeutig if b["art"] != "Rechtsprechung des EuGH"]
+    return eindeutig
 
 
 def unionsrecht_finden(t: dict, randnummern: list[int] | None = None) -> list[dict]:
@@ -143,9 +153,7 @@ def unionsrecht_finden(t: dict, randnummern: list[int] | None = None) -> list[di
     bezuege = normen.unionsrecht_bezuege(text)
     if randnummern:
         bezuege = [b for b in bezuege if b["rn"] in randnummern]
-    if any(b["art"] in ("Vorlagebeschluss", "EuGH-Rechtssache") for b in bezuege):
-        bezuege = [b for b in bezuege if b["art"] != "Rechtsprechung des EuGH"]   # genauerer Verweis da
-    return bezuege
+    return _ohne_doppelte(bezuege)
 
 
 def _bezug_text(b: dict) -> str:
@@ -165,18 +173,27 @@ def _bezug_text(b: dict) -> str:
     return text + (f" (Rn. {b['rn']})" if b["rn"] else "")
 
 
-def unionsrecht_block(ausgewertet: list[dict], pruefungen: dict | None = None) -> str:
+def unionsrecht_block(ausgewertet: list[dict], pruefungen: dict | None = None,
+                      gruppen: list[dict] = ()) -> str:
     """Abschnitt 5: Bezüge zum Unionsrecht, die das Modell sonst übersieht.
 
+    Gesucht wird in den zitierten Randnummern der ausgewerteten Treffer und in den
+    Originalstellen zu Rechtsprechungsänderungen (gruppen aus abweichung.entwicklung):
+    Dort steht oft, welche Vorlage an den EuGH die Änderung ausgelöst hat.
     Die Entscheidungen des EuGH selbst sind nicht im Bestand und werden nicht ausgewertet -
     der Block sagt das ausdrücklich, damit die Lücke sichtbar bleibt.
     """
-    zeilen = []
+    funde: dict[str, list[dict]] = {}                   # Bezeichnung der Fundstelle -> Bezüge
     for t in ausgewertet:
         randnummern = (pruefungen or {}).get(t["nr"], {}).get("randnummern")
-        bezuege = unionsrecht_finden(t, randnummern)
-        if bezuege:
-            zeilen.append(f"> - [{t['nr']}] {t['aktenzeichen']}: " + "; ".join(_bezug_text(b) for b in bezuege))
+        funde[f"[{t['nr']}] {t['aktenzeichen']}"] = unionsrecht_finden(t, randnummern)
+    for g in gruppen:
+        for b in g["betroffen"]:
+            von = b["von"]
+            name = (f"[{von['nr']}] " if von.get("nr") else "") + f"{von['aktenzeichen']}, Stelle zur Rechtsprechungsänderung"
+            funde.setdefault(name, []).extend(normen.unionsrecht_bezuege(b["stelle"]))
+    zeilen = [f"> - {name}: " + "; ".join(_bezug_text(b) for b in _ohne_doppelte(bezuege))
+              for name, bezuege in funde.items() if bezuege]
     if not zeilen:
         return ""
     return "\n".join(["> **Unionsrecht** · automatisch erkannt", ">", *zeilen, ">",
@@ -199,5 +216,5 @@ def antwort_ergaenzen(antwort: str, treffer: list[dict], pruefungen: dict | None
     antwort, korrekturen = metadaten_einsetzen(belege.rn_klammern(antwort), treffer)
     gruppen = abweichung.entwicklung(ausgewertet)
     antwort = einfuegen(antwort, 4, aenderungen_block(gruppen))
-    antwort = einfuegen(antwort, 5, unionsrecht_block(ausgewertet, pruefungen))
+    antwort = einfuegen(antwort, 5, unionsrecht_block(ausgewertet, pruefungen, gruppen))
     return {"antwort": antwort, "korrekturen": korrekturen, "entwicklung": gruppen}

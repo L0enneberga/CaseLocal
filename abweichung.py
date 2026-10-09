@@ -114,7 +114,8 @@ def pruefen(t: dict, hoechstens: int = 3) -> list[dict]:
         stellen = verdaechtige_stellen(k.pop("text"), t["aktenzeichen"])
         if not stellen:
             continue
-        antwort = llm.json_chat(PROMPT_AENDERUNG, "Textstellen:\n\n" + "\n\n[…]\n\n".join(stellen))
+        antwort = llm.json_chat(PROMPT_AENDERUNG, "Textstellen:\n\n" + "\n\n[…]\n\n".join(stellen),
+                                denken=config.DENKEN_PRUEFUNG)
         if aenderung_bestaetigt(antwort):
             hinweise.append({**k, "erklaerung": str(antwort.get("erklaerung") or "").strip(),
                              "stelle": " ".join(stellen[0].split())})
@@ -135,16 +136,28 @@ def alle_pruefen(treffer: list[dict]) -> int:
 def entwicklung(treffer: list[dict]) -> list[dict]:
     """Ordnet die Hinweise nach der ändernden Entscheidung, die älteste zuerst.
 
-    Ergebnis: [{"aendernd": {gericht, datum, aktenzeichen, slug, nr, ...}, "erklaerung",
-                "betroffen": [{"treffer": t, "stelle": "..."}]}, ...]
+    Ergebnis: [{"aendernd": [{gericht, datum, aktenzeichen, slug, nr, ...}], "erklaerung",
+                "betroffen": [{"treffer": t, "stelle": "...", "von": ändernde Entscheidung}]}, ...]
     "betroffen" sind die früheren Treffer, die die ändernde Entscheidung an der Stelle zitiert.
+    Serienentscheidungen (gleiches Gericht, gleicher Tag, dieselben zitierten Treffer - etwa
+    mehrere gleichlautende BAG-Urteile) werden zu einer Gruppe zusammengefasst.
     """
-    gruppen: dict[int, dict] = {}
+    je_id: dict[int, dict] = {}
     for t in treffer:
         for a in t.get("abweichungen") or []:
-            gruppe = gruppen.setdefault(a["id"], {"aendernd": a, "erklaerung": "", "betroffen": []})
+            gruppe = je_id.setdefault(a["id"], {"aendernd": a, "erklaerung": "", "betroffen": []})
             gruppe["erklaerung"] = gruppe["erklaerung"] or a["erklaerung"]
-            gruppe["betroffen"].append({"treffer": t, "stelle": a["stelle"]})
-    for gruppe in gruppen.values():
-        gruppe["betroffen"].sort(key=lambda b: b["treffer"]["datum"] or "")
-    return sorted(gruppen.values(), key=lambda g: g["aendernd"]["datum"] or "")
+            gruppe["betroffen"].append({"treffer": t, "stelle": a["stelle"], "von": a})
+
+    gruppen: dict[tuple, dict] = {}
+    for g in je_id.values():
+        a = g["aendernd"]
+        serie = (a["gericht"], a["datum"], tuple(sorted(b["treffer"]["nr"] for b in g["betroffen"])))
+        if serie in gruppen:
+            gruppen[serie]["aendernd"].append(a)
+        else:
+            gruppen[serie] = {**g, "aendernd": [a]}
+    for g in gruppen.values():
+        g["aendernd"].sort(key=lambda a: a.get("nr") or 999)            # Treffer zuerst
+        g["betroffen"].sort(key=lambda b: b["treffer"]["datum"] or "")
+    return sorted(gruppen.values(), key=lambda g: g["aendernd"][0]["datum"] or "")

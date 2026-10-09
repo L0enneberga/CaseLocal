@@ -6,15 +6,15 @@ Recherche in den 10.000 bedeutendsten deutschen Gerichtsentscheidungen – mit h
 
 > **Datengrundlage:** CaseLocal nutzt den Urteilsdatensatz von [Open Legal Data](https://openlegaldata.io) (Ostendorff, Blume & Ostendorff, 2020). Das Sammeln, Aufbereiten und offene Bereitstellen von über 400.000 Gerichtsentscheidungen ist ihre Arbeit, nicht meine. Herzlichen Dank dafür! Details und Zitat: [Datengrundlage und Dank](#datengrundlage-und-dank).
 
-**Gegliederte Antwort:** Kurzantwort, einschlägige Normen und Rechtsprechung mit Randnummern. Jede belegte Aussage ist gegen das zitierte Urteil geprüft (✓).
+**Gegliederte Antwort:** Kurzantwort, einschlägige Normen und Rechtsprechung mit Randnummern. Jede belegte Aussage ist gegen das zitierte Urteil geprüft: gestützt (✓), nicht gestützt (rot markiert).
 
 ![Gegliederte KI-Antwort mit geprüften Belegen](docs/screenshot1.png)
 
-**Zitatprüfung:** Teilweise gestützte Aussagen werden orange, nicht gestützte rot markiert. Die Treffer zeigen Instanz, Zitierhäufigkeit und Jahr.
+**Rechtsprechungsänderungen und Zitatprüfung:** Die Antwort weist darauf hin, wenn ein Gericht seine frühere Linie aufgegeben hat. Darunter steht die Bilanz der Zitatprüfung, die Treffer zeigen Instanz, Zitierhäufigkeit und Jahr.
 
-![Zitatprüfung markiert nicht belegte Aussagen](docs/screenshot2.png)
+![Hinweis auf Rechtsprechungsänderung und Bilanz der Zitatprüfung](docs/screenshot2.png)
 
-**Fundstelle im Urteil:** der passende Abschnitt der Gründe mit Randnummern und verlinkten Normen.
+**Fundstelle im Urteil:** der passende Abschnitt der Gründe mit Randnummern und verlinkten Normen. Urteile, die die KI-Einzelprüfung als nicht einschlägig einstuft, werden als „aussortiert“ gekennzeichnet.
 
 ![Fundstelle mit Randnummern und verlinkten Normen](docs/screenshot3.png)
 

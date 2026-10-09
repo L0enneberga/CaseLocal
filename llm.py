@@ -23,6 +23,13 @@ PROMPT_PRUEFUNG = """Du bist juristische Rechercheassistenz für deutsches Recht
 Prüfe EIN Urteil darauf, ob es zur Beantwortung der Frage beiträgt. Nutze nur den gegebenen Text.
 "relevant" ist nur true, wenn der Text die Frage zumindest teilweise beantwortet –
 nicht schon dann, wenn nur das Rechtsgebiet passt.
+
+Vorsicht bei Rechtsmittelentscheidungen (Revision, Berufung, Beschwerde): Die Gründe geben oft
+zuerst die Auffassung der Vorinstanz oder den Vortrag der Parteien wieder ("Das Berufungsgericht
+hat ausgeführt ...", "Der Kläger meint ..."). Das ist NICHT die Entscheidung dieses Gerichts.
+Randnummern mit dem Zusatz [Wiedergabe der Vorinstanz] enthalten nur die Ansicht der Vorinstanz.
+Beschreibe nur, was dieses Gericht selbst entscheidet. Der Tenor zeigt das Ergebnis: "Auf die
+Revision wird das Urteil ... aufgehoben" heißt, das Gericht teilt die Auffassung der Vorinstanz nicht.
 Antworte ausschließlich als JSON:
 {"relevant": true oder false,
  "begruendung": "1 Satz: warum relevant oder nicht",
@@ -58,6 +65,7 @@ Regeln:
 - Nenne die wichtigsten Randnummern im Format (Rn. 15) oder (Rn. 15, 17), wenn das Material sie enthält. Erfinde keine Randnummern.
 - Trenne Einzelfall und Rechtssatz: "Im konkreten Fall entschied das Gericht ..." ist etwas anderes als "Das Gericht stellt den Grundsatz auf, dass ...". Formuliere keine allgemeinen Rechtssätze, die nicht im Material stehen.
 - Berücksichtige Instanz, Bedeutung und Datum: Entscheidungen oberster Gerichte (BVerfG, BGH, BAG, BVerwG, BSG, BFH, EuGH) vor denen der Instanzgerichte, häufig zitierte vor selten zitierten, neuere vor älteren.
+- Schreibe einem Gericht nur zu, was es selbst entschieden hat – nicht die Ansicht der Vorinstanz oder der Parteien, die es nur wiedergibt. Randnummern mit [Wiedergabe der Vorinstanz] sind nie die Auffassung des zitierten Gerichts.
 - Erfinde keine Urteile, Aktenzeichen oder Normen.
 - Sachlich, auf Deutsch, höchstens 450 Wörter. Dies ist keine Rechtsberatung."""
 
@@ -67,6 +75,10 @@ Bewerte jede nummerierte Aussage:
 - "teilweise": Ein Teil stimmt, aber etwas ist übertrieben, zu allgemein oder steht nicht im Text.
 - "nein": Der Text stützt die Aussage nicht oder sagt etwas anderes.
 Bewerte nur, ob das Urteil die Aussage trägt, nicht, ob sie rechtlich richtig ist.
+Achtung: Schreibt die Aussage dem Gericht etwas zu, das im Text nur als Ansicht der Vorinstanz oder
+einer Partei wiedergegeben wird ("Das Berufungsgericht hat ausgeführt ...", "Der Kläger meint ..."),
+ist sie "nein" – besonders, wenn der Tenor zeigt, dass das Gericht die Vorinstanz aufgehoben hat.
+Randnummern mit dem Zusatz [Wiedergabe der Vorinstanz] geben nur die Ansicht der Vorinstanz wieder.
 Antworte ausschließlich als JSON:
 {"pruefung": [{"aussage": 1, "urteil": "ja", "hinweis": "kurze Begründung"}]}"""
 
@@ -130,7 +142,10 @@ def urteil_kontext(t: dict) -> str:
         teile.append(f"Leitsatz:\n{gliederung.lesbar(t['leitsatz'])}")
     if t.get("tenor"):
         teile.append(f"Tenor:\n{gliederung.lesbar(t['tenor'])}")
-    teile.append(f"{t['kontext_fundstelle']}:\n{gliederung.lesbar(t['kontext'])}")
+    vorinstanz = set(t.get("vorinstanz_rn") or [])
+    teile.append(f"{t['kontext_fundstelle']}:\n{gliederung.lesbar(t['kontext'], vorinstanz=vorinstanz)}")
+    if t.get("bewertung"):
+        teile.append(f"{t['bewertung_fundstelle']}:\n{gliederung.lesbar(t['bewertung'])}")
     if abweichungs_hinweise(t):
         teile.append(abweichungs_hinweise(t))
     return "\n\n".join(teile)

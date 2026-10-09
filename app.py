@@ -144,7 +144,8 @@ def recherchieren(frage: str) -> dict:
 
     # Stufe 2: gegliederte Antwort, live angezeigt
     st.subheader("Antwort")
-    e["antwort"] = st.write_stream(llm.antwort_streamen(frage, e["auswahl"], e["pruefungen"]))
+    e["antwort"] = belege.rn_klammern(
+        st.write_stream(llm.antwort_streamen(frage, e["auswahl"], e["pruefungen"])))
 
     # Zitatprüfung
     if zitatpruefung:
@@ -224,7 +225,8 @@ def anzeigen(e: dict) -> None:
                 st.markdown(f"**Tenor:** {normen.verlinken(tenor[:500])}" + (" […]" if len(tenor) > 500 else ""))
             st.markdown(f"**Fundstelle:** {t['fundstelle']}")
             auszug = gliederung.ab_randnummer(t["auszug"])
-            st.info(normen.verlinken(gliederung.lesbar(auszug, markdown=True)))
+            vorinstanz = set(t.get("vorinstanz_rn") or [])
+            st.info(normen.verlinken(gliederung.lesbar(auszug, markdown=True, vorinstanz=vorinstanz)))
             st.caption("Gefunden durch: " + " + ".join(t["gefunden_durch"]))
             st.link_button("Volltext bei Open Legal Data",
                            f"https://de.openlegaldata.io/case/{t['slug']}")

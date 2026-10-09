@@ -42,3 +42,10 @@ def test_markieren():
         ":red-background[Satz zwei \\[2\\].] :red[:material/close:]\n"
         "- :orange-background[Satz drei \\[1\\].] :orange[:material/help:]")
     assert zusammenfassung(aussagen) == {"ja": 1, "teilweise": 1, "nein": 1, "unklar": 0}
+
+
+def test_randnummern_in_eckigen_klammern():
+    from belege import rn_klammern
+    antwort = rn_klammern("Das Gericht entschied so [Rn. 14, 15] [3].")
+    assert antwort == "Das Gericht entschied so (Rn. 14, 15) [3]."
+    assert aussagen_finden(antwort) == [{"satz": antwort, "quellen": [3]}]

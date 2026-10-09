@@ -85,6 +85,40 @@ def test_lesbar_entfernt_einrueckungen():
     assert lesbar("1. Abgewiesen.\n\n    Kosten trägt der Kläger.") == "1. Abgewiesen.\n\nKosten trägt der Kläger."
 
 
+REVISION = """## Gründe
+
+5
+:   Die Revision hat Erfolg.
+
+6
+:   I. Das Berufungsgericht hat zur Begründung seiner Entscheidung ausgeführt:
+
+7
+:   Die Kündigung sei wirksam.
+
+8
+:   II. Diese Beurteilung hält rechtlicher Nachprüfung nicht stand.
+
+9
+:   Die Kündigung ist unwirksam."""
+
+
+def test_wiedergabe_der_vorinstanz_wird_erkannt():
+    from gliederung import vorinstanz_randnummern
+    assert vorinstanz_randnummern(REVISION) == [6, 7]
+    assert vorinstanz_randnummern(REVISION.replace("II. Diese Beurteilung hält rechtlicher Nachprüfung nicht stand.",
+                                                   "Weiter so.")) == []          # ohne Ende: nichts markieren
+    assert "Rn. 7 [Wiedergabe der Vorinstanz]: Die Kündigung sei wirksam." in lesbar(REVISION, vorinstanz={6, 7})
+
+
+def test_bewertung_nach_der_vorinstanz():
+    from gliederung import bewertung_nach_vorinstanz
+    text, von, bis = bewertung_nach_vorinstanz(REVISION, [6, 7])
+    assert (von, bis) == (8, 9)
+    assert text.startswith("8\n:   II. Diese Beurteilung") and "Die Kündigung ist unwirksam." in text
+    assert bewertung_nach_vorinstanz(REVISION, []) == ("", 0, 0)
+
+
 def test_ab_randnummer():
     from gliederung import ab_randnummer
     assert ab_randnummer("Satzrest.\n\n5\n:   Neuer Absatz.") == "5\n:   Neuer Absatz."

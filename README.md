@@ -26,6 +26,7 @@ Der Schwerpunkt liegt auf **nachprüfbaren Antworten**: Das Sprachmodell soll ni
 - **Gewichten und kennzeichnen statt aussortieren**: Bedeutung und Aktualität fließen in die Rangfolge ein, die Relevanz zur Frage bleibt entscheidend. Jeder Treffer zeigt Instanz, „zitiert von N Entscheidungen“ und Jahr.
 - **Hinweis auf Rechtsprechungsänderungen**: Zitiert ein neueres Urteil gleicher oder höherer Instanz einen Treffer mit Formulierungen wie „hält nicht mehr fest“ oder „in Abkehr von“, prüft das Modell, ob dort wirklich eine Änderung der Rechtsprechung erörtert wird. Dann erscheint am Treffer ein Prüfhinweis mit der Originalstelle. Ob der Treffer die alte oder die neue Linie vertritt, entscheidet bewusst der Mensch: Im Test an 40 echten Fällen lag das Sprachmodell dabei etwa jedes zweite Mal falsch.
 - **Zitatprüfung gegen Halluzinationen**: Ein zweiter Durchgang prüft jeden Satz der Antwort gegen das Urteil, das er zitiert. Gestützte Aussagen erhalten ein Häkchen, teilweise oder nicht gestützte werden farbig markiert und begründet.
+- **Vorinstanz und Gericht auseinanderhalten**: Revisionsurteile geben oft zuerst die Begründung der Vorinstanz wieder („Das Berufungsgericht hat ausgeführt …“) und verwerfen sie danach. CaseLocal erkennt diese Passagen, kennzeichnet ihre Randnummern als „Wiedergabe der Vorinstanz“ und gibt dem Modell zusätzlich die eigene Bewertung des Gerichts mit. So wird die Meinung der Vorinstanz nicht dem Bundesgericht zugeschrieben, und die Zitatprüfung erkennt, wenn es doch passiert.
 - **Zweistufige Analyse**: Das Modell prüft zuerst jedes gefundene Urteil einzeln (beantwortet es die Frage? was wurde im konkreten Fall entschieden? welche Randnummer?) und sortiert unpassende aus. Erst aus diesen Einzelprüfungen entsteht die Antwort.
 - **Gegliederte Antwort nach juristischer Arbeitsweise**: Kurzantwort, einschlägige Normen, Rechtsprechung mit Randnummern, abweichende Entscheidungen und was die Urteile *nicht* beantworten. Einzelfall und Rechtssatz werden getrennt, höhere Instanzen und neuere Entscheidungen zuerst.
 - **Suche entlang der Urteilsgliederung**: Urteile werden an Tenor, Tatbestand und Gründen zerlegt, Randnummern bleiben erhalten. Die Gründe zählen bei der Suche mehr als der Parteivortrag im Tatbestand. Zu jedem Treffer bekommt das Modell Leitsatz, Tenor und den Kontext rund um die Fundstelle.
@@ -53,7 +54,7 @@ Frage ──► LLM: Suchbegriffe ──► hybride Suche ──► LLM: Einzelp
 | `config.py` | Alle Einstellungen (Modelle, Pfade, Datenmenge) |
 | `auswahl.py` | Wählt die bedeutendsten Urteile über den Zitationsgraphen aus |
 | `daten_laden.py` | Lädt die Urteile von Hugging Face in SQLite |
-| `gliederung.py` | Erkennt Tenor, Tatbestand, Gründe und Randnummern |
+| `gliederung.py` | Erkennt Tenor, Tatbestand, Gründe, Randnummern und die Wiedergabe der Vorinstanz |
 | `index_bauen.py` | Teilt Urteile entlang der Gliederung in Abschnitte, berechnet Embeddings |
 | `schlagworte.py` | Optional: KI-Verschlagwortung |
 | `suche.py` | Schlagwort-, semantische und hybride Suche, Filter |

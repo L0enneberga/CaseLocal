@@ -105,6 +105,66 @@ def randnummern(text: str) -> list[int]:
     return [int(n) for n in RANDNUMMER.findall(text)]
 
 
+# Rechtsmittelentscheidungen geben oft zuerst die Begründung der Vorinstanz wieder
+# ("Das Berufungsgericht hat ... ausgeführt: ... sei ... habe ...") und bewerten sie erst
+# danach ("Diese Beurteilung hält rechtlicher Nachprüfung nicht stand."). Für ein Sprachmodell
+# sieht die Wiedergabe aus wie die Meinung des Gerichts - deshalb wird sie markiert.
+VORINSTANZ_BEGINN = re.compile(
+    r"^(?:[IVX]+\.\s*|\d+\.\s*)?(?:Das|Der|Die) (?:Berufungsgericht|Beschwerdegericht|Landgericht"
+    r"|Oberlandesgericht|Kammergericht|Landesarbeitsgericht|Landessozialgericht|Oberverwaltungsgericht"
+    r"|Verwaltungsgerichtshof|Finanzgericht|Amtsgericht|Arbeitsgericht|Sozialgericht|Verwaltungsgericht"
+    r"|Berufungskammer|Vorinstanz)\b.{0,160}?\b(?:ausgeführt|angenommen|gemeint|im Wesentlichen"
+    r"|zur Begründung|begründet)")
+EIGENE_BEWERTUNG = re.compile(
+    r"^(?:(?:II|III|IV)\.|B\.)(?:\s|$)|rechtliche[rn]? Nachprüfung|(?:revisionsrechtlich|rechtlich) nicht zu "
+    r"beanstanden|^(?:Dem|Dies(?:em)?) (?:folgt|schließt sich|ist (?:nicht )?zu folgen)|^Das hält"
+    r"|^Dies hält|^(?:Diese|Die|Das) (?:rechtliche )?(?:Beurteilung|Würdigung|Erwägungen|Ausführungen"
+    r"|Annahme|Auffassung|Begründung)[^.]{0,80}?(?:hält|halten|trifft|treffen|begegnet|begegnen|erweist"
+    r"|erweisen|ist|sind) ")
+
+
+def vorinstanz_randnummern(text: str, hoechstens: int = 30) -> list[int]:
+    """Randnummern, in denen das Gericht nur die Begründung der Vorinstanz wiedergibt.
+
+    Erkannt wird der erste Abschnitt von "Das Berufungsgericht hat ... ausgeführt"
+    bis zur eigenen Bewertung ("Diese Beurteilung hält rechtlicher Nachprüfung ...").
+    Ohne erkennbares Ende wird nichts markiert, lieber zu wenig als zu viel.
+    """
+    gruende = "\n\n".join(i for t, i in teile_erkennen(text) if t == "Gründe")
+    rn, zone, gefunden = 0, False, []
+    for absatz in gruende.split("\n\n"):
+        nummer = re.match(r"(\d{1,4})\n:\s*", absatz)
+        if nummer:
+            rn = int(nummer[1])
+        inhalt = re.sub(r"^(?:\d{1,4}\n)?:\s*", "", absatz).strip()
+        if zone and EIGENE_BEWERTUNG.search(inhalt):
+            return sorted(set(gefunden)) if len(set(gefunden)) <= hoechstens else []
+        if not zone and VORINSTANZ_BEGINN.match(inhalt):
+            zone = True
+        if zone and rn:
+            gefunden.append(rn)
+    return []
+
+
+def bewertung_nach_vorinstanz(text: str, vorinstanz: list[int], max_zeichen: int = 2500) -> tuple[str, int, int]:
+    """Die ersten Absätze nach der Wiedergabe der Vorinstanz: dort bewertet das Gericht selbst.
+
+    Ergebnis: (Text, erste Randnummer, letzte Randnummer) oder ("", 0, 0)
+    """
+    if not vorinstanz:
+        return "", 0, 0
+    gruende = normalisieren("\n\n".join(i for t, i in teile_erkennen(text) if t == "Gründe"))
+    absaetze = re.findall(r"(?ms)^(\d{1,4})\n:\s+(.*?)(?=^\d{1,4}\n:|\Z)", gruende)
+    auswahl, laenge = [], 0
+    for rn, inhalt in absaetze:
+        if int(rn) > vorinstanz[-1] and laenge < max_zeichen:
+            auswahl.append((int(rn), f"{rn}\n:   {inhalt.strip()}"))
+            laenge += len(inhalt)
+    if not auswahl:
+        return "", 0, 0
+    return "\n\n".join(a for _, a in auswahl)[: max_zeichen + 500], auswahl[0][0], auswahl[-1][0]
+
+
 def fundstelle(teil: str, rn_von: int, rn_bis: int) -> str:
     """Kurze Bezeichnung eines Abschnitts, z. B. "Gründe, Rn. 15–17"."""
     if not rn_von:
@@ -114,12 +174,18 @@ def fundstelle(teil: str, rn_von: int, rn_bis: int) -> str:
     return f"{teil}, Rn. {rn_von}–{rn_bis}"
 
 
-def lesbar(text: str, markdown: bool = False) -> str:
+def lesbar(text: str, markdown: bool = False, vorinstanz=()) -> str:
     """Macht die Randnummern lesbar: "15\\n:   Text" wird zu "Rn. 15: Text".
 
     Mit markdown=True wird die Randnummer fett gesetzt (für die Anzeige in der App).
+    Randnummern aus `vorinstanz` werden als Wiedergabe der Vorinstanz gekennzeichnet.
     """
-    ersatz = r"**Rn. \1** " if markdown else r"Rn. \1: "
+    def ersatz(treffer: re.Match) -> str:
+        rn = int(treffer[1])
+        if markdown:
+            return f"**Rn. {rn}** " + (":gray-badge[Wiedergabe der Vorinstanz] " if rn in vorinstanz else "")
+        return f"Rn. {rn}" + (" [Wiedergabe der Vorinstanz]" if rn in vorinstanz else "") + ": "
+
     text = re.sub(r"(?m)^(\d{1,4})\n:\s+", ersatz, text)
     text = re.sub(r"(?m)^:\s+", "", text)                # Absätze ohne Randnummer
     return re.sub(r"(?m)^[^\S\n]+", "", text)            # Einrückungen (auch geschützte Leerzeichen)

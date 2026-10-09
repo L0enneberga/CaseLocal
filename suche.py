@@ -305,11 +305,20 @@ def hybride_suche(frage: str, schlagworte: list[str], anzahl: int = 8,
             else:                                      # Urteil (noch) nicht im Bedeutungs-Index
                 kontext, rn_von, rn_bis = beste[uid]["auszug"], 0, 0
                 fundstelle, auszug = "Volltext", beste[uid]["auszug"]
+            # Liegt der Auszug in der Wiedergabe der Vorinstanz, fehlt sonst die eigene
+            # Bewertung des Gerichts - dann ihren Anfang zusätzlich mitgeben.
+            vorinstanz = gliederung.vorinstanz_randnummern(volltext)
+            bewertung, bew_von, bew_bis = "", 0, 0
+            if vorinstanz and rn_von and rn_von <= vorinstanz[-1]:
+                bewertung, bew_von, bew_bis = gliederung.bewertung_nach_vorinstanz(volltext, vorinstanz)
             eintrag.update(
                 auszug=auszug, fundstelle=fundstelle,
                 kontext=kontext, kontext_fundstelle=gliederung.fundstelle("Auszug", rn_von, rn_bis),
+                bewertung=bewertung,
+                bewertung_fundstelle=gliederung.fundstelle("Eigene Bewertung des Gerichts", bew_von, bew_bis),
                 leitsatz=gliederung.teil_text(volltext, "Leitsatz"),
                 tenor=gliederung.teil_text(volltext, "Tenor"),
+                vorinstanz_rn=vorinstanz,
                 gefunden_durch=quelle[uid], punkte=punkte[uid],
             )
             treffer.append(eintrag)

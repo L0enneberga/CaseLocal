@@ -24,6 +24,15 @@ ABKUERZUNGEN = {"abs.", "nr.", "art.", "rn.", "az.", "vgl.", "bzw.", "ca.", "ggf
 STUFEN = {"ja": 3, "teilweise": 2, "nein": 1, "unklar": 0}
 
 
+def rn_klammern(antwort: str) -> str:
+    """Randnummern in eckigen Klammern ("[Rn. 14, 15]") in runde setzen ("(Rn. 14, 15)").
+
+    Eckige Klammern sind den Urteilsnummern [n] vorbehalten; sonst hält die Zitatprüfung
+    "[Rn. 14" für einen eigenen Satz.
+    """
+    return re.sub(r"\[(Rn\.[^\]]*)\]", r"(\1)", antwort)
+
+
 def quellen(satz: str) -> list[int]:
     """Alle zitierten Urteilsnummern eines Satzes: "... [1, 3] ... [2]" -> [1, 3, 2]."""
     nummern = []
@@ -42,7 +51,7 @@ def saetze_teilen(text: str) -> list[str]:
     saetze, start = [], 0
     for ende in re.finditer(r"[.!?](?:\s*\[\d+(?:\s*[,;]\s*\d+)*\])*(?=\s+\S|\s*$)", text):
         if ende.group(0) == ".":
-            wort = text[start:ende.end()].split()[-1].lower().lstrip("(„\"")
+            wort = text[start:ende.end()].split()[-1].lower().lstrip("([„\"")
             if wort in ABKUERZUNGEN or re.fullmatch(r"\d+\.", wort):
                 continue                               # Abkürzung oder "1. Juli": kein Satzende
         satz = text[start:ende.end()].strip()
@@ -82,7 +91,7 @@ def pruefen(antwort: str, treffer: list[dict], fortschritt=None) -> list[dict]:
     zitieren. fortschritt(nr, anzahl) wird vor jedem Aufruf aufgerufen (für die Anzeige).
     Ergebnis: Aussagen aus aussagen_finden, ergänzt um "urteil" und "hinweise".
     """
-    aussagen = aussagen_finden(antwort)
+    aussagen = aussagen_finden(rn_klammern(antwort))
     nach_nr = {t["nr"]: t for t in treffer}
     je_quelle: dict[int, list[int]] = {}               # Urteilsnummer -> Indizes der Aussagen
     for i, aussage in enumerate(aussagen):

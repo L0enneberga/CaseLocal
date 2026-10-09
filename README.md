@@ -2,7 +2,7 @@
 
 [![Tests](https://github.com/L0enneberga/CaseLocal/actions/workflows/tests.yml/badge.svg)](https://github.com/L0enneberga/CaseLocal/actions/workflows/tests.yml)
 
-Recherche in den 10.000 bedeutendsten deutschen Gerichtsentscheidungen – mit hybrider Suche, gegliederter KI-Antwort und einer Zitatprüfung, die nicht belegte Aussagen sichtbar macht. **Alles läuft lokal**: Kein Text verlässt den Rechner, und es entstehen keine API-Kosten.
+Recherche in den 10.000 bedeutendsten deutschen Gerichtsentscheidungen – mit hybrider Suche, gegliederter KI-Antwort, dem Wortlaut der einschlägigen Gesetze und einer Zitatprüfung, die nicht belegte Aussagen sichtbar macht. **Alles läuft lokal**: Kein Text verlässt den Rechner, und es entstehen keine API-Kosten.
 
 > **Datengrundlage:** CaseLocal nutzt den Urteilsdatensatz von [Open Legal Data](https://openlegaldata.io) (Ostendorff, Blume & Ostendorff, 2020). Das Sammeln, Aufbereiten und offene Bereitstellen von über 400.000 Gerichtsentscheidungen ist ihre Arbeit, nicht meine. Herzlichen Dank dafür! Details und Zitat: [Datengrundlage und Dank](#datengrundlage-und-dank).
 
@@ -47,6 +47,7 @@ Open Legal Data ──► daten_laden.py ──► SQLite (Metadaten + FTS5-Inde
                                           │
                     index_bauen.py ───────┴──► ChromaDB (Embeddings via bge-m3)
                     schlagworte.py ──► LLM vergibt Schlagworte + Kurzfassung
+gesetze-im-internet.de ──► gesetze_laden.py ──► SQLite (Normen mit Stand) + ChromaDB (Normsuche)
 
 Frage ──► LLM: Suchbegriffe ──► hybride Suche ──► LLM: Einzelprüfung je Urteil
                                                           │
@@ -78,7 +79,7 @@ Frage ──► LLM: Suchbegriffe ──► hybride Suche ──► LLM: Einzelp
 
 ## Technik
 
-Python · [Ollama](https://ollama.com) · Gemma 4 12B · bge-m3 · ChromaDB · SQLite FTS5 · Streamlit
+Python · [Ollama](https://ollama.com) · Gemma 4 12B · bge-m3 · ChromaDB · SQLite FTS5 · Streamlit · Gesetzestexte von [gesetze-im-internet.de](https://www.gesetze-im-internet.de)
 
 Getestet auf: Windows 11, RTX 4080 Super (16 GB VRAM), 32 GB RAM.
 
@@ -88,7 +89,7 @@ Getestet auf: Windows 11, RTX 4080 Super (16 GB VRAM), 32 GB RAM.
 
 Voraussetzungen: [Python](https://www.python.org/downloads/) 3.11+ und [Ollama](https://ollama.com/download) sind installiert, und auf der [Datensatzseite](https://huggingface.co/datasets/openlegaldata/court-decisions-germany) sind die Zugangsbedingungen akzeptiert (kostenloser Hugging-Face-Account).
 
-1. **`setup.bat`** doppelklicken – einmalig. Legt die virtuelle Umgebung an, installiert die Bibliotheken, lädt die Modelle aus `config.py` und die Urteile und baut den Suchindex. Fehlt etwas, erklärt das Skript, was zu tun ist; danach einfach erneut starten, Erledigtes wird übersprungen.
+1. **`setup.bat`** doppelklicken – einmalig. Legt die virtuelle Umgebung an, installiert die Bibliotheken, lädt die Modelle aus `config.py`, die Urteile und die meistzitierten Gesetze und baut den Suchindex. Fehlt etwas, erklärt das Skript, was zu tun ist; danach einfach erneut starten, Erledigtes wird übersprungen.
 2. **`start.bat`** doppelklicken – bei jeder Nutzung. Prüft, ob alles bereit ist, startet Ollama bei Bedarf und öffnet die App im Browser.
 
 ## Installation von Hand
@@ -151,7 +152,7 @@ Die Tests prüfen die Bausteine, die ohne Daten und ohne Ollama funktionieren (d
 | --- | --- |
 | Antwort, Abschnitt 2 | Jede genannte Norm zum Aufklappen: Wortlaut (bei „Abs. 2“ nur dieser Absatz), Stand, Link |
 | Material für das Modell | Wortlaut der bis zu 5 Normen, die die Einzelprüfung am häufigsten nennt, je höchstens 1.200 Zeichen (`NORMEN_MAX`, `NORMTEXT_ZEICHEN`) |
-| Prüfung der Antwort | Paragraphen, die es im geladenen Gesetz nicht gibt, werden rot markiert. Nicht geladene Gesetze (z. B. DSGVO) bekommen nur einen grauen Hinweis. |
+| Prüfung der Antwort | Paragraphen, die es im geladenen Gesetz nicht gibt, werden rot markiert. Nicht geladene Gesetze (z. B. DSGVO) bekommen nur einen grauen Hinweis. Die Zitatprüfung kennt den Wortlaut der Normen, die ein Satz nennt. |
 | Trefferkarte | Normen, die das Urteil am häufigsten zitiert, mit Link |
 | Keine passende Rechtsprechung | Normsuche über Embeddings: die 5 ähnlichsten Normen mit Wortlaut, ohne KI-Einschätzung |
 
@@ -179,14 +180,14 @@ python bewertung.py --name denken --denken-pruefung ja      # mit Denkmodus in d
 | Vorher | 10/13 | 11/13 | 6 | 93 % (114/122) | 3 | 5 | 30 s |
 | Nach Fehlerbehebung (Metadaten, strengere Zitatprüfung, Abschnitt 4 und Unionsrecht per Code) | 10/13 | 11/13 | **0** | 85 % (87/102) | 11 | 4 | 27 s |
 | Zusätzlich Denkmodus in den Prüfschritten | 10/13 | 11/13 | 0 | 61 % (60/99) | 18 | 7 | 180 s |
-| Nach Fehlerbehebung, mit Gesetzestexten im Material (ohne Denkmodus) | 10/13 | 11/13 | 0 | 84 % (95/113) | 14 | 4 | 54 s* |
+| Zusätzlich Gesetzestexte im Material und in der Zitatprüfung (ohne Denkmodus) | 10/13 | 11/13 | 0 | **88 %** (99/113) | 11 | 3 | 28 s |
 
 So sind die Zahlen zu lesen:
 
 - **Falsches Datum oder Az.:** Vorher verschrieb sich das Modell in 6 von 13 Antworten beim Datum, jedes Mal mit „20.“ als Tag (etwa 20.02.2018 statt 22.02.2018). Seit der Code den Urteilskopf aus der Datenbank einsetzt, kommt das nicht mehr vor.
 - **Weniger „gestützt“ heißt hier strenger, nicht schlechter:** Ein Satz mit mehreren Quellen gilt jetzt nur noch als gestützt, wenn alle ihn tragen. Hinweissätze werden nicht mehr mitgezählt. Die zusätzlichen „teilweise“ betreffen meist Normen-Stichpunkte, die mehr Urteile zitieren als nötig.
 - **Denkmodus:** Für einen fairen Vergleich wurden dieselben Antworten einmal mit und einmal ohne Denkmodus geprüft (109 Sätze). 77 Sätze wurden in beiden Läufen gleich bewertet. 19 blieben mit Denkmodus ohne Ergebnis, weil das Modell sich bei langen Urteilen über 14.000 Tokens festdachte und das Kontextfenster füllte. Nur 3 Sätze wurden inhaltlich strenger bewertet, davon einer zu Recht. Bei 13-facher Rechenzeit bleibt der Denkmodus deshalb aus (`config.DENKEN_PRUEFUNG`).
-- **Gesetzestexte:** Der Wortlaut im Material verschlechtert die Antworten nicht. Gestützt, nicht gestützt und Metadaten bleiben im Rahmen der Schwankung gleich. *Die Dauer ist nicht vergleichbar, weil die Grafikkarte während dieses Laufs mit einem anderen Programm geteilt war. Das zusätzliche Material umfasst nur etwa 1.500 Tokens, das Modell bleibt laut `ollama ps` zu 100 % auf der GPU.
+- **Gesetzestexte:** Drei Läufe direkt hintereinander: ohne Gesetzestexte 84 % gestützt, mit Wortlaut nur im Material 81 %, mit Wortlaut auch in der Zitatprüfung 88 %. Der Zwischenschritt zeigt eine Lücke: Mit dem Gesetz vor Augen beschreibt das Modell Normen aus dem Wortlaut („§ 15 Abs. 2 AGG – Anspruch auf Entschädigung“). Die Zitatprüfung sah aber nur das Urteil und wertete das als „teilweise“. Seit sie den Wortlaut mitbekommt, prüft sie, ob das Urteil die Norm in diesem Zusammenhang heranzieht. Die Dauer bleibt gleich (28 s je Frage), das Modell läuft laut `ollama ps` weiter zu 100 % auf der GPU.
 - **Suche:** Bei den beiden Fragen zum Urlaubsrecht landet das erwartete Leiturteil nur auf Platz 8 und 9. Davor stehen neuere Entscheidungen desselben Senats, die die Linie fortführen.
 
 Die Antworten sind nicht deterministisch, einzelne Werte schwanken zwischen zwei Läufen. Die vollständigen Antworten jedes Laufs speichert `bewertung.py` in `daten/bewertung/`.
@@ -195,7 +196,7 @@ Die Antworten sind nicht deterministisch, einzelne Werte schwanken zwischen zwei
 
 Die Urteile stammen aus dem Datensatz [court-decisions-germany](https://huggingface.co/datasets/openlegaldata/court-decisions-germany), die Zitierungen aus dem [legal-citation-graph-germany](https://huggingface.co/datasets/openlegaldata/legal-citation-graph-germany), beide von **[Open Legal Data](https://openlegaldata.io)**. Das Projekt sammelt deutsche Gerichtsentscheidungen, bereitet sie mit Metadaten (Gericht, Datum, Aktenzeichen, ECLI) und als sauberen Text auf und stellt sie frei zur Verfügung. Ohne diese Vorarbeit gäbe es CaseLocal nicht.
 
-**Abgrenzung:** Von Open Legal Data stammen die Urteilstexte, ihre Metadaten und der Zitationsgraph. Selbst gebaut habe ich die Such- und Analyseschicht darauf: Bedeutungs-Score und Auswahl, Indexierung, hybride Suche, KI-Analyse mit Zitatprüfung, Hinweis auf Rechtsprechungsänderungen und die Oberfläche.
+**Abgrenzung:** Von Open Legal Data stammen die Urteilstexte, ihre Metadaten und der Zitationsgraph, die Gesetzestexte von gesetze-im-internet.de. Selbst gebaut habe ich die Such- und Analyseschicht darauf: Bedeutungs-Score und Auswahl, Indexierung, hybride Suche, KI-Analyse mit Zitatprüfung, Hinweis auf Rechtsprechungsänderungen, Einbindung der Gesetzestexte mit Normsuche und die Oberfläche.
 
 Wer dieses Projekt oder den Datensatz verwendet, sollte die Arbeit der Ersteller zitieren:
 

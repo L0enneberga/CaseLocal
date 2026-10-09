@@ -3,6 +3,7 @@
 Aufruf:  python bewertung.py --name vorher
          python bewertung.py --name nachher --nur 3      (nur die ersten 3 Fragen)
          python bewertung.py --name denken --denken-pruefung ja   (Denkmodus in den Prüfschritten)
+         python bewertung.py --name ohne --ohne-gesetzestexte     (kein Normtext im Material)
 
 Jede Frage läuft durch dieselbe Kette wie in der App (mit gründlicher Analyse,
 Rechtsprechungsänderungen und Zitatprüfung). Gemessen wird pro Frage:
@@ -95,7 +96,11 @@ def main() -> None:
     parser.add_argument("--nur", type=int, help="nur die ersten N Fragen")
     parser.add_argument("--denken-pruefung", choices=["ja", "nein"],
                         help="Denkmodus in den Prüfschritten (überschreibt config.DENKEN_PRUEFUNG)")
+    parser.add_argument("--ohne-gesetzestexte", action="store_true",
+                        help="keine Normtexte im Material (setzt config.NORMEN_MAX = 0)")
     argumente = parser.parse_args()
+    if argumente.ohne_gesetzestexte:
+        config.NORMEN_MAX = 0
     if argumente.denken_pruefung:
         config.DENKEN_PRUEFUNG = argumente.denken_pruefung == "ja"
 
@@ -109,7 +114,7 @@ def main() -> None:
               f" · {gold['aktenzeichen']}", flush=True)
 
     gesamt = zusammenfassen(ergebnisse)
-    gesamt.update(modell=config.LLM_MODELL, denken_pruefung=config.DENKEN_PRUEFUNG)
+    gesamt.update(modell=config.LLM_MODELL, denken_pruefung=config.DENKEN_PRUEFUNG, normen_max=config.NORMEN_MAX)
     AUSGABE.mkdir(parents=True, exist_ok=True)
     datei = AUSGABE / f"{argumente.name}.json"
     datei.write_text(json.dumps({"gesamt": gesamt, "fragen": ergebnisse}, ensure_ascii=False, indent=2),

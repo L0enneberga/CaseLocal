@@ -128,3 +128,20 @@ def test_kurzform_finden():
     assert gesetze_laden.kurzform_finden("DSGVO", vorhanden) is None
     assert gesetze_laden.vergleichsform("AO 1977") == gesetze_laden.vergleichsform("AO")
     assert gesetze_laden.vergleichsform("SGB II") == gesetze_laden.vergleichsform("SGB 2")
+
+
+def test_ohne_gesetzestexte(gesetze_db, monkeypatch):
+    import llm
+    monkeypatch.setattr(config, "NORMEN_MAX", 0)
+    assert llm.normtexte({1: {"relevant": True, "normen": ["§ 15 Abs. 2 AGG"]}}) == ""
+
+
+def test_zitatpruefung_bekommt_den_wortlaut(gesetze_db, monkeypatch):
+    import llm
+    gesendet = {}
+    monkeypatch.setattr(llm, "json_chat", lambda system, nutzer, denken=False: gesendet.update(nutzer=nutzer) or {})
+    t = {"nr": 1, "gericht": "BAG", "typ": "Urteil", "datum": "2016-08-11", "aktenzeichen": "8 AZR 4/15",
+         "kontext": "38\n:   Text.", "kontext_fundstelle": "Gründe, Rn. 38"}
+    llm.aussagen_pruefen(t, ["§ 15 Abs. 2 AGG – Anspruch auf Entschädigung"])
+    assert "Gesetzestexte zu den in den Aussagen genannten Normen" in gesendet["nutzer"]
+    assert "(2) Wegen eines Schadens" in gesendet["nutzer"]

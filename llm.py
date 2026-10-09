@@ -86,6 +86,9 @@ Achtung: Schreibt die Aussage dem Gericht etwas zu, das im Text nur als Ansicht 
 einer Partei wiedergegeben wird ("Das Berufungsgericht hat ausgeführt ...", "Der Kläger meint ..."),
 ist sie "nein" – besonders, wenn der Tenor zeigt, dass das Gericht die Vorinstanz aufgehoben hat.
 Randnummern mit dem Zusatz [Wiedergabe der Vorinstanz] geben nur die Ansicht der Vorinstanz wieder.
+Beschreibt eine Aussage, was eine Norm regelt ("§ 15 Abs. 2 AGG – Anspruch auf Entschädigung"), darf
+diese Beschreibung aus den mitgegebenen Gesetzestexten stammen. Prüfe dann, ob das Urteil die Norm in
+diesem Zusammenhang heranzieht – eine Definition der Norm muss im Urteil nicht stehen.
 Antworte ausschließlich als JSON:
 {"pruefung": [{"aussage": 1, "urteil": "ja", "hinweis": "kurze Begründung"}]}"""
 
@@ -240,6 +243,8 @@ def normtexte(pruefungen: dict[int, dict]) -> str:
                     haeufigkeit[schluessel] = haeufigkeit.get(schluessel, 0) + 1
     teile, gesehen = [], set()
     for (art, nr, gesetz, absatz), _ in sorted(haeufigkeit.items(), key=lambda x: -x[1]):
+        if len(teile) >= config.NORMEN_MAX:
+            break
         norm = normen.nachschlagen(art, nr, gesetz, absatz)
         if norm is None or norm["norm"] in gesehen:
             continue
@@ -248,8 +253,21 @@ def normtexte(pruefungen: dict[int, dict]) -> str:
         if len(text) > config.NORMTEXT_ZEICHEN:
             text = text[: config.NORMTEXT_ZEICHEN].rsplit(" ", 1)[0] + " […]"
         teile.append(f"{norm['norm']} – {norm['titel']}:\n{text}")
+    return "\n\n".join(teile)
+
+
+def normtexte_zu(text: str) -> str:
+    """Wortlaut der Normen, die in einem Text genannt werden (für die Zitatprüfung).
+
+    Gleiche Obergrenzen wie normtexte: config.NORMEN_MAX Normen, je config.NORMTEXT_ZEICHEN Zeichen.
+    """
+    teile = []
+    for f in normen.normen_finden(text):
         if len(teile) >= config.NORMEN_MAX:
             break
+        norm = normen.nachschlagen(f["art"], f["nr"], f["gesetz"], f["absatz"])
+        if norm:
+            teile.append(f"{norm['norm']} – {norm['titel']}:\n{norm['text'][: config.NORMTEXT_ZEICHEN]}")
     return "\n\n".join(teile)
 
 
@@ -290,6 +308,8 @@ def aussagen_pruefen(t: dict, aussagen: list[str]) -> list[dict]:
     """
     liste = "\n".join(f"{i}. {a}" for i, a in enumerate(aussagen, 1))
     nachricht = f"Urteil:\n{urteil_kontext(t)}\n\nAussagen:\n{liste}"
+    if gesetzestexte := normtexte_zu("\n".join(aussagen)):
+        nachricht += f"\n\nGesetzestexte zu den in den Aussagen genannten Normen (Wortlaut):\n\n{gesetzestexte}"
     daten = json_chat(PROMPT_ZITATPRUEFUNG, nachricht, denken=config.DENKEN_PRUEFUNG)
     ergebnisse = [{"urteil": "unklar", "hinweis": "Keine Bewertung erhalten."} for _ in aussagen]
     for eintrag in daten.get("pruefung") or []:

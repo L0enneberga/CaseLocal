@@ -1,0 +1,67 @@
+[
+  {
+    "frage": "Muss eine Bewerbung subjektiv ernsthaft sein, damit ein Entschädigungsanspruch nach § 15 Abs. 2 AGG besteht?",
+    "aktenzeichen": "8 AZR 4/15",
+    "kernaussage": "Nein. Der Bewerberbegriff des § 6 Abs. 1 Satz 2 AGG ist formal; der Senat hält an der Voraussetzung der subjektiven Ernsthaftigkeit nicht fest. Eine nur auf Entschädigung zielende Bewerbung kann am Rechtsmissbrauchseinwand (§ 242 BGB) scheitern. Bezug zur EuGH-Vorlage 8 AZR 848/13 (A) (Kratzer)."
+  },
+  {
+    "frage": "Kann eine GbR einem Mieter wegen Eigenbedarfs eines Gesellschafters kündigen?",
+    "aktenzeichen": "VIII ZR 232/15",
+    "kernaussage": "Ja. Eine (Außen-)GbR kann sich auf den Eigenbedarf eines ihrer Gesellschafter berufen (§ 573 Abs. 2 Nr. 2 BGB analog)."
+  },
+  {
+    "frage": "Ist eine Schönheitsreparaturklausel wirksam, wenn die Wohnung unrenoviert übergeben wurde?",
+    "aktenzeichen": "VIII ZR 185/14",
+    "kernaussage": "Nein. Bei unrenoviert oder renovierungsbedürftig überlassener Wohnung ist die formularmäßige Abwälzung der Schönheitsreparaturen ohne angemessenen Ausgleich unwirksam (§ 307 BGB)."
+  },
+  {
+    "frage": "Verfällt der Urlaub eines Arbeitnehmers am Jahresende, wenn der Arbeitgeber ihn nicht auf den drohenden Verfall hingewiesen hat?",
+    "aktenzeichen": "9 AZR 541/15",
+    "kernaussage": "Nein. Der Verfall nach § 7 Abs. 3 BUrlG setzt voraus, dass der Arbeitgeber seine Mitwirkungsobliegenheiten erfüllt, also auffordert und auf den Verfall hinweist."
+  },
+  {
+    "frage": "Verjährt der Anspruch auf gesetzlichen Mindesturlaub, wenn der Arbeitgeber den Arbeitnehmer nicht aufgefordert hat, den Urlaub zu nehmen?",
+    "aktenzeichen": "9 AZR 245/19",
+    "kernaussage": "Die dreijährige Verjährungsfrist beginnt erst am Ende des Jahres, in dem der Arbeitgeber über den Urlaubsanspruch und die Verfallfristen belehrt hat."
+  },
+  {
+    "frage": "Rechtfertigt besseres Verhandlungsgeschick eines männlichen Kollegen ein höheres Gehalt als das einer Kollegin bei gleicher Arbeit?",
+    "aktenzeichen": "8 AZR 450/21",
+    "kernaussage": "Nein. Ein höheres Entgelt allein wegen besseren Verhandelns widerlegt die Vermutung der Benachteiligung wegen des Geschlechts nicht; die Klägerin hat Anspruch auf gleiches Entgelt."
+  },
+  {
+    "frage": "Sind Leistungskürzungen beim Arbeitslosengeld II wegen Pflichtverletzungen verfassungsgemäß?",
+    "aktenzeichen": "1 BvL 7/16",
+    "kernaussage": "Teilweise. Minderungen um 30 % sind unter Voraussetzungen zulässig, Minderungen um 60 % oder den vollständigen Wegfall erklärte das BVerfG für unvereinbar mit dem Grundgesetz."
+  },
+  {
+    "frage": "Haben Erben einen Anspruch auf Zugang zum Facebook-Konto des verstorbenen Kindes?",
+    "aktenzeichen": "III ZR 183/17",
+    "kernaussage": "Ja. Der Nutzungsvertrag geht im Wege der Gesamtrechtsnachfolge auf die Erben über; Datenschutz und Fernmeldegeheimnis stehen dem nicht entgegen."
+  },
+  {
+    "frage": "Kann ein Besteller beim Werkvertrag Schadensersatz nach den fiktiven Mängelbeseitigungskosten verlangen?",
+    "aktenzeichen": "VII ZR 46/17",
+    "kernaussage": "Nein. Der VII. Zivilsenat gibt seine frühere Rechtsprechung auf: Wer den Mangel nicht beseitigen lässt, kann den Schaden nicht nach fiktiven Mängelbeseitigungskosten bemessen."
+  },
+  {
+    "frage": "Rechtfertigt das Einlösen fremder Pfandbons im Wert von 1,30 Euro eine fristlose Kündigung nach langer Betriebszugehörigkeit?",
+    "aktenzeichen": "2 AZR 541/09",
+    "kernaussage": "Nein (Emmely). Vermögensdelikte zulasten des Arbeitgebers können zwar wichtiger Grund sein, die Interessenabwägung ergab wegen der langen beanstandungsfreien Beschäftigung aber, dass eine Abmahnung genügt hätte."
+  },
+  {
+    "frage": "Kann ein verurteilter Straftäter verlangen, dass alte Presseberichte über ihn aus einem Onlinearchiv entfernt werden?",
+    "aktenzeichen": "1 BvR 16/13",
+    "kernaussage": "Der Zeitablauf ist in der Abwägung zu berücksichtigen (Recht auf Vergessen I); der Presse können Schutzmaßnahmen gegen die Auffindbarkeit über Suchmaschinen zumutbar sein."
+  },
+  {
+    "frage": "Darf eine Bank bei einem Darlehen an einen Unternehmer ein laufzeitunabhängiges Bearbeitungsentgelt in ihren AGB verlangen?",
+    "aktenzeichen": "XI ZR 562/15",
+    "kernaussage": "Nein. Auch gegenüber Unternehmern ist eine solche Klausel nach § 307 BGB unwirksam."
+  },
+  {
+    "frage": "Ist ein voreingestelltes Ankreuzkästchen eine wirksame Einwilligung in Cookies und Werbeanrufe?",
+    "aktenzeichen": "I ZR 7/16",
+    "kernaussage": "Der BGH hat dem EuGH die Frage zur Auslegung der Richtlinie 2002/58/EG vorgelegt (Planet49). Unionsrechtlicher Bezug muss erkannt werden."
+  }
+]

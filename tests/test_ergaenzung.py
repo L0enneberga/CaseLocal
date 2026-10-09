@@ -1,6 +1,6 @@
 """Tests für die Ergänzungen der KI-Antwort per Code (ohne Sprachmodell)."""
 from belege import abschnitte, daten_finden, metadaten_abweichungen
-from ergaenzung import metadaten_einsetzen, urteilskopf
+from ergaenzung import aenderungen_block, antwort_ergaenzen, einfuegen, metadaten_einsetzen, urteilskopf
 
 BAG = {"nr": 1, "gericht": "Bundesarbeitsgericht", "typ": "Urteil", "datum": "2016-08-11",
        "aktenzeichen": "8 AZR 4/15", "kontext": "38\n:   Vgl. BAG 23. August 2012 - 8 AZR 285/11 - Rn. 18."}
@@ -57,3 +57,71 @@ def test_falsches_aktenzeichen_bei_mehreren_quellen_nur_gemeldet():
     abweichung = metadaten_abweichungen(antwort, [BAG, BGH])
     assert abweichung[0]["art"] == "Aktenzeichen" and abweichung[0]["richtig"] is None
     assert metadaten_einsetzen(antwort, [BAG, BGH])[0] == antwort
+
+
+
+def test_aktenzeichen_mit_vor_und_nachsilbe_und_hinweise_sind_keine_abweichung():
+    bsg = {"nr": 3, "gericht": "Bundessozialgericht", "typ": "Urteil", "datum": "2010-11-09",
+           "aktenzeichen": "B 4 AS 27/10 R",
+           "abweichungen": [{"datum": "2015-04-29", "aktenzeichen": "B 14 AS 19/14 R"}]}
+    antwort = ("Das BSG (B 4 AS 27/10 R) wird von der Entscheidung vom 2015-04-29, "
+               "B 14 AS 19/14 R, zitiert [3].")
+    assert metadaten_abweichungen(antwort, [bsg]) == []
+
+# --- Aufgabe 4: Rechtsprechungsänderungen per Code ----------------------------
+
+AENDERND = {"id": 10, "nr": 1, "gericht": "Bundesarbeitsgericht", "typ": "Urteil", "datum": "2016-08-11",
+            "aktenzeichen": "8 AZR 4/15", "slug": "bag-8-azr-4-15"}
+FRUEHER = {"id": 20, "nr": 2, "gericht": "Bundesarbeitsgericht", "typ": "Urteil", "datum": "2012-08-23",
+           "aktenzeichen": "8 AZR 285/11", "slug": "bag-8-azr-285-11"}
+
+
+def zwei_treffer(monkeypatch):
+    """Treffer 1 zitiert Treffer 2 an einer Stelle, an der er eine Rechtsprechungsänderung beschreibt."""
+    import abweichung
+    hinweis = {k: AENDERND[k] for k in ("id", "gericht", "typ", "datum", "aktenzeichen", "slug")}
+    hinweis.update(instanz="Oberstes Gericht", erklaerung="Die subjektive Ernsthaftigkeit wird nicht mehr verlangt.",
+                   stelle="... hält der Senat hieran nicht fest (8 AZR 285/11) ...")
+    monkeypatch.setattr(abweichung, "pruefen", lambda t: [dict(hinweis)] if t["nr"] == 2 else [])
+    treffer = [dict(AENDERND), dict(FRUEHER)]
+    assert abweichung.alle_pruefen(treffer) == 1
+    return treffer
+
+
+def test_aendernde_und_betroffene_entscheidung_getrennt(monkeypatch):
+    import abweichung
+    treffer = zwei_treffer(monkeypatch)
+    assert treffer[1]["abweichungen"][0]["nr"] == 1          # die ändernde Entscheidung ist Treffer [1]
+    gruppen = abweichung.entwicklung(treffer)
+    assert len(gruppen) == 1 and gruppen[0]["aendernd"]["nr"] == 1
+    assert [b["treffer"]["nr"] for b in gruppen[0]["betroffen"]] == [2]
+    block = aenderungen_block(gruppen)
+    assert "**Ändernde Entscheidung:** [1] Bundesarbeitsgericht, Urt. v. 11.08.2016 – 8 AZR 4/15" in block
+    assert "**Dort zitiert:** [2] Bundesarbeitsgericht, Urt. v. 23.08.2012 – 8 AZR 285/11" in block
+    assert all(zeile.startswith(">") for zeile in block.split("\n"))
+    assert "überholt" not in block                            # keine Behauptung, welche Linie gilt
+
+
+def test_ohne_treffernummer_mit_link(monkeypatch):
+    import abweichung
+    treffer = zwei_treffer(monkeypatch)[1:]                   # ändernde Entscheidung kein Treffer
+    treffer[0]["abweichungen"][0]["nr"] = None
+    assert "([Volltext](https://de.openlegaldata.io/case/bag-8-azr-4-15))" in aenderungen_block(
+        abweichung.entwicklung(treffer))
+
+
+def test_block_kommt_ans_ende_von_abschnitt_4():
+    antwort = "**4. Abweichende Entscheidungen**\nKeine gefunden.\n\n**5. Offen**\nNichts."
+    assert einfuegen(antwort, 4, "> Block") == (
+        "**4. Abweichende Entscheidungen**\nKeine gefunden.\n\n> Block\n\n**5. Offen**\nNichts.\n")
+    assert einfuegen("Ohne Abschnitte.", 4, "> Block") == "Ohne Abschnitte.\n\n> Block\n"
+
+
+def test_antwort_ergaenzen_mit_aenderung(monkeypatch):
+    treffer = zwei_treffer(monkeypatch)
+    antwort = "**3. Rechtsprechung**\n- [1] – Formaler Begriff.\n**4. Abweichende**\nKeine.\n**5. Offen**\nx"
+    ergebnis = antwort_ergaenzen(antwort, treffer)
+    assert "> - **Ändernde Entscheidung:** [1]" in ergebnis["antwort"]
+    assert ergebnis["antwort"].index("Ändernde") < ergebnis["antwort"].index("**5. Offen**")
+    from belege import aussagen_finden
+    assert all("Ändernde" not in a["satz"] for a in aussagen_finden(ergebnis["antwort"]))

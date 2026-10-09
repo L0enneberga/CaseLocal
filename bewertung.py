@@ -35,8 +35,7 @@ def frage_bewerten(gold: dict) -> dict:
     start = time.time()
     frage = gold["frage"]
     treffer = suche.hybride_suche(frage, llm.frage_zu_schlagworten(frage), 10)
-    for t in treffer:
-        t["abweichungen"] = abweichung.pruefen(t)
+    abweichung.alle_pruefen(treffer)
     auswahl = treffer[: config.KI_TREFFER]
     pruefungen = {t["nr"]: llm.urteil_pruefen(frage, t) for t in auswahl}
     roh = "".join(llm.antwort_streamen(frage, auswahl, pruefungen))
@@ -56,6 +55,10 @@ def frage_bewerten(gold: dict) -> dict:
                              for a in belege.metadaten_abweichungen(antwort, treffer)],
         "metadaten_fehler_roh": len(belege.metadaten_abweichungen(belege.rn_klammern(roh), treffer)),
         "korrekturen": ergaenzt["korrekturen"],
+        "rechtsprechungsaenderungen": [
+            {"aendernd": g["aendernd"]["aktenzeichen"], "nr": g["aendernd"].get("nr"),
+             "dort_zitiert": [b["treffer"]["aktenzeichen"] for b in g["betroffen"]]}
+            for g in ergaenzt["entwicklung"]],
         "zitatpruefung": belege.zusammenfassung(aussagen),
         "dauer": round(time.time() - start),
         "treffer": [f"[{t['nr']}] {t['gericht']} {t['datum']} {t['aktenzeichen']}" for t in treffer],

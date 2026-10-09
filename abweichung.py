@@ -10,6 +10,9 @@ Ablauf für ein Urteil:
   4. Nur dann prüft das LLM: Wird an der Stelle wirklich eine Änderung der
      Rechtsprechung beschrieben, und welche?
 
+Die App zeigt das Ergebnis als festen Block in Abschnitt 4 der Antwort (siehe entwicklung):
+welche Entscheidung die Änderung beschreibt und welche früheren Treffer sie dabei zitiert.
+
 Bewusst NICHT automatisiert: die Entscheidung, ob das gefundene Urteil die alte
 (aufgegebene) oder die neue Linie vertritt. Im Test mit 40 echten Fällen lag das
 Sprachmodell dabei etwa jedes zweite Mal falsch - typischerweise, wenn das Urteil
@@ -78,12 +81,12 @@ def verdaechtige_stellen(text: str, aktenzeichen: str) -> list[str]:
 def neuere_zitierende(db: sqlite3.Connection, t: dict, hoechstens: int = 8) -> list[dict]:
     """Neuere Urteile der Datenbank, die t zitieren, von gleicher oder höherer Instanz."""
     zeilen = db.execute(
-        "SELECT u.gericht, u.typ, u.datum, u.aktenzeichen, u.slug, u.instanz, u.text "
+        "SELECT u.id, u.gericht, u.typ, u.datum, u.aktenzeichen, u.slug, u.instanz, u.text "
         "FROM zitierungen z JOIN urteile u ON u.id = z.von_id "
         "WHERE z.nach_id = ? AND u.datum > ? ORDER BY u.datum DESC",
         (t["id"], t["datum"] or ""),
     ).fetchall()
-    spalten = ["gericht", "typ", "datum", "aktenzeichen", "slug", "instanz", "text"]
+    spalten = ["id", "gericht", "typ", "datum", "aktenzeichen", "slug", "instanz", "text"]
     kandidaten = [dict(zip(spalten, z)) for z in zeilen]
     eigener_rang = RANG.get(t.get("instanz"), 1)
     return [k for k in kandidaten if RANG.get(k["instanz"], 1) >= eigener_rang][:hoechstens]
@@ -99,7 +102,7 @@ def pruefen(t: dict, hoechstens: int = 3) -> list[dict]:
 
     Liefert höchstens `hoechstens` Hinweise, die neuesten zuerst (oft wiederholen
     mehrere Urteile derselben Serie wortgleich dieselbe Stelle).
-    Ergebnis: [{"gericht", "typ", "datum", "aktenzeichen", "slug", "instanz",
+    Ergebnis: [{"id", "gericht", "typ", "datum", "aktenzeichen", "slug", "instanz",
                 "erklaerung", "stelle"}, ...]
     """
     with closing(sqlite3.connect(config.SQLITE_PFAD)) as db:
@@ -116,3 +119,32 @@ def pruefen(t: dict, hoechstens: int = 3) -> list[dict]:
             hinweise.append({**k, "erklaerung": str(antwort.get("erklaerung") or "").strip(),
                              "stelle": " ".join(stellen[0].split())})
     return hinweise
+
+
+def alle_pruefen(treffer: list[dict]) -> int:
+    """Prüft alle Treffer und merkt sich bei jedem Hinweis die Treffernummer der ändernden
+    Entscheidung ("nr"), falls sie selbst unter den Treffern ist. Ergebnis: Anzahl betroffener Treffer."""
+    nr_von_id = {t["id"]: t["nr"] for t in treffer}
+    for t in treffer:
+        t["abweichungen"] = pruefen(t)
+        for a in t["abweichungen"]:
+            a["nr"] = nr_von_id.get(a["id"])
+    return sum(bool(t["abweichungen"]) for t in treffer)
+
+
+def entwicklung(treffer: list[dict]) -> list[dict]:
+    """Ordnet die Hinweise nach der ändernden Entscheidung, die älteste zuerst.
+
+    Ergebnis: [{"aendernd": {gericht, datum, aktenzeichen, slug, nr, ...}, "erklaerung",
+                "betroffen": [{"treffer": t, "stelle": "..."}]}, ...]
+    "betroffen" sind die früheren Treffer, die die ändernde Entscheidung an der Stelle zitiert.
+    """
+    gruppen: dict[int, dict] = {}
+    for t in treffer:
+        for a in t.get("abweichungen") or []:
+            gruppe = gruppen.setdefault(a["id"], {"aendernd": a, "erklaerung": "", "betroffen": []})
+            gruppe["erklaerung"] = gruppe["erklaerung"] or a["erklaerung"]
+            gruppe["betroffen"].append({"treffer": t, "stelle": a["stelle"]})
+    for gruppe in gruppen.values():
+        gruppe["betroffen"].sort(key=lambda b: b["treffer"]["datum"] or "")
+    return sorted(gruppen.values(), key=lambda g: g["aendernd"]["datum"] or "")

@@ -55,9 +55,9 @@ Ein Stichpunkt je Urteil, er beginnt mit der Nummer des Urteils:
 Schreibe Gericht, Datum und Aktenzeichen NICHT selbst, sie werden automatisch aus der Datenbank eingesetzt.
 
 **4. Abweichende oder einschränkende Entscheidungen**
-Urteile, die anders entscheiden oder die Aussage einschränken. Steht im Material ein
-"HINWEIS: ... Rechtsprechungsänderung", nenne ihn hier als zu prüfenden Punkt, ohne zu behaupten,
-welches Urteil überholt ist. Gibt es nichts davon: "Keine gefunden."
+Urteile aus dem Material, die inhaltlich anders entscheiden oder die Aussage einschränken.
+Schreibe hier NICHTS über die HINWEISE zu Rechtsprechungsänderungen – diese werden automatisch
+ergänzt. Gibt es keine abweichenden Urteile: "Keine inhaltlich abweichenden Entscheidungen gefunden."
 
 **5. Was die gefundenen Urteile nicht beantworten**
 Teile der Frage, zu denen das Material nichts sagt.
@@ -137,12 +137,19 @@ def kopf(t: dict) -> str:
 
 
 def abweichungs_hinweise(t: dict) -> str:
-    """Hinweise auf neuere Urteile, die im Zusammenhang mit t eine Rechtsprechungsänderung erörtern."""
-    return "\n".join(
-        f"HINWEIS zu [{t['nr']}] (Az. {t['aktenzeichen']}): Die spätere Entscheidung {a['gericht']} vom "
-        f"{a['datum']}, Az. {a['aktenzeichen']}, zitiert [{t['nr']}] an einer Stelle, an der sie eine "
-        f"Rechtsprechungsänderung beschreibt: {a['erklaerung']} Ob [{t['nr']}] von dieser Änderung "
-        "betroffen ist, muss am Volltext geprüft werden." for a in t.get("abweichungen") or [])
+    """Hinweise auf neuere Urteile, die t zitieren, während sie eine Rechtsprechungsänderung beschreiben.
+
+    Abschnitt 4 der Antwort setzt dazu der Code ein (ergaenzung.py). Das Modell soll den
+    Hinweis nur kennen, z. B. um die neuere Entscheidung in der Kurzantwort vorzuziehen.
+    """
+    zeilen = []
+    for a in t.get("abweichungen") or []:
+        wer = f"[{a['nr']}]" if a.get("nr") else f"{a['gericht']} vom {datum_deutsch(a['datum'])}"
+        zeilen.append(f"HINWEIS zu [{t['nr']}]: Die spätere Entscheidung {wer} (Az. {a['aktenzeichen']}) "
+                      f"zitiert [{t['nr']}], während sie eine Rechtsprechungsänderung beschreibt: "
+                      f"{a['erklaerung']} Ob [{t['nr']}] die alte oder die neue Linie vertritt, ist offen. "
+                      "Dieser Hinweis wird in Abschnitt 4 automatisch ergänzt.")
+    return "\n".join(zeilen)
 
 
 def urteil_kontext(t: dict) -> str:

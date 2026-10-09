@@ -109,7 +109,7 @@ def recherchieren(frage: str) -> dict:
     Neuzeichnen der Seite (z. B. nach einem Klick in der Seitenleiste) erhalten bleibt.
     """
     e = {"frage": frage, "treffer": [], "auswahl": [], "pruefungen": None,
-         "antwort": None, "aussagen": None, "korrekturen": []}
+         "antwort": None, "aussagen": None, "korrekturen": [], "entwicklung": []}
 
     with st.status("Suche passende Urteile …", type="step") as status:
         e["schlagworte"] = llm.frage_zu_schlagworten(frage) if ki_schlagworte else frage.split()
@@ -118,9 +118,7 @@ def recherchieren(frage: str) -> dict:
 
     if e["treffer"] and abweichungen_pruefen:
         with st.status("Prüfe auf neuere, abweichende Rechtsprechung …", type="step") as status:
-            for t in e["treffer"]:
-                t["abweichungen"] = abweichung.pruefen(t)   # landet auch im Material für das LLM
-            gefunden = sum(bool(t["abweichungen"]) for t in e["treffer"])
+            gefunden = abweichung.alle_pruefen(e["treffer"])   # landet auch im Material für das LLM
             status.update(label=f"Rechtsprechungsänderungen: bei {gefunden} Urteil(en) zu prüfen"
                           if gefunden else "Rechtsprechungsänderungen: keine Hinweise gefunden",
                           state="complete")
@@ -148,6 +146,7 @@ def recherchieren(frage: str) -> dict:
     roh = st.write_stream(llm.antwort_streamen(frage, e["auswahl"], e["pruefungen"]))
     ergaenzt = ergaenzung.antwort_ergaenzen(roh, e["treffer"], e["pruefungen"])
     e["antwort"], e["korrekturen"] = ergaenzt["antwort"], ergaenzt["korrekturen"]
+    e["entwicklung"] = ergaenzt["entwicklung"]
 
     # Zitatprüfung
     if zitatpruefung:
@@ -176,6 +175,14 @@ def antwort_anzeigen(e: dict) -> None:
                    f":red[:material/close:] {z['nein']} nicht gestützt"
                    + (f" · :gray[:material/question_mark:] {z['unklar']} unklar" if z["unklar"] else "")
                    + (f" · :gray[:material/info:] {z['hinweis']} Hinweise nicht geprüft" if z["hinweis"] else ""))
+    if e.get("entwicklung"):
+        with st.expander("Originalstellen zur Rechtsprechungsänderung", icon=":material/history:"):
+            for g in e["entwicklung"]:
+                u = g["aendernd"]
+                for b in g["betroffen"]:
+                    st.markdown(f"**{u['aktenzeichen']}** zitiert **[{b['treffer']['nr']}] "
+                                f"{b['treffer']['aktenzeichen']}** – [Volltext]"
+                                f"(https://de.openlegaldata.io/case/{u['slug']})\n\n> „…{b['stelle']}…“")
     offen = [a for a in e["aussagen"] or [] if a["urteil"] not in ("ja", "hinweis")]
     korrekturen = e.get("korrekturen") or []
     if offen or korrekturen:

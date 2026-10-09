@@ -192,15 +192,24 @@ def _az(aktenzeichen: str) -> str:
 
 
 def _material(t: dict) -> str:
-    """Der Text, den das LLM über ein Urteil gesehen hat (dort zitierte Daten sind erlaubt)."""
-    return " ".join(str(t.get(feld) or "") for feld in ("leitsatz", "tenor", "kontext", "bewertung"))
+    """Der Text, den das LLM über ein Urteil gesehen hat (dort zitierte Daten sind erlaubt):
+    Leitsatz, Tenor, Auszüge und die Hinweise auf spätere Rechtsprechungsänderungen."""
+    teile = [str(t.get(feld) or "") for feld in ("leitsatz", "tenor", "kontext", "bewertung")]
+    teile += [f"{a.get('datum')} {a.get('aktenzeichen')}" for a in t.get("abweichungen") or []]
+    return " ".join(teile)
+
+
+def _bekannt(az: str, erlaubte: set[str]) -> bool:
+    """"14 AS 19/14" ist Teil von "B 14 AS 19/14 R" - das Muster erfasst Vor- und Nachsilben nicht."""
+    return any(_az(az) in e for e in erlaubte)
 
 
 def metadaten_abweichungen(antwort: str, treffer: list[dict]) -> list[dict]:
     """Findet Daten und Aktenzeichen in der Antwort, die nicht zum zitierten Urteil passen.
 
     Erlaubt ist, was zum Kopf eines zitierten Urteils gehört oder in dessen Material steht
-    (Urteile zitieren andere Urteile). Ergebnis je Fund:
+    (Urteile zitieren andere Urteile), außerdem Aktenzeichen anderer Treffer samt ihrem Datum.
+    Ergebnis je Fund:
     {"satz", "art": "Datum" | "Aktenzeichen", "gefunden", "richtig" (nur bei genau einer Quelle), "nr"}
     """
     nach_nr = {t["nr"]: t for t in treffer}
@@ -211,16 +220,17 @@ def metadaten_abweichungen(antwort: str, treffer: list[dict]) -> list[dict]:
             continue
         einzige = zitierte[0] if len(zitierte) == 1 else None
         material = " ".join(_material(t) for t in zitierte)
-        erlaubte_daten = {t["datum"] for t in zitierte} | {iso for _, iso in daten_finden(material)}
+        genannte = [t for t in treffer if _az(t["aktenzeichen"]) in _az(aussage["satz"])]
+        erlaubte_daten = ({t["datum"] for t in zitierte + genannte}
+                          | {iso for _, iso in daten_finden(material)})
         for fund, iso in daten_finden(aussage["satz"]):
             if iso not in erlaubte_daten:
                 abweichungen.append({"satz": aussage["satz"], "art": "Datum", "gefunden": fund,
                                      "richtig": llm.datum_deutsch(einzige["datum"]) if einzige else None,
                                      "nr": einzige["nr"] if einzige else None})
-        erlaubte_az = {_az(t["aktenzeichen"]) for t in zitierte} | {
-            _az(a) for a in AKTENZEICHEN.findall(material)}
+        erlaubte_az = {_az(t["aktenzeichen"]) for t in treffer} | {_az(material)}
         for fund in AKTENZEICHEN.findall(aussage["satz"]):
-            if _az(fund) not in erlaubte_az:
+            if not _bekannt(fund, erlaubte_az):
                 abweichungen.append({"satz": aussage["satz"], "art": "Aktenzeichen", "gefunden": fund,
                                      "richtig": einzige["aktenzeichen"] if einzige else None,
                                      "nr": einzige["nr"] if einzige else None})

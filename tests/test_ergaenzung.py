@@ -1,6 +1,7 @@
 """Tests für die Ergänzungen der KI-Antwort per Code (ohne Sprachmodell)."""
 from belege import abschnitte, daten_finden, metadaten_abweichungen
-from ergaenzung import aenderungen_block, antwort_ergaenzen, einfuegen, metadaten_einsetzen, urteilskopf
+from ergaenzung import (aenderungen_block, antwort_ergaenzen, einfuegen, metadaten_einsetzen,
+                        unionsrecht_block, urteilskopf)
 
 BAG = {"nr": 1, "gericht": "Bundesarbeitsgericht", "typ": "Urteil", "datum": "2016-08-11",
        "aktenzeichen": "8 AZR 4/15", "kontext": "38\n:   Vgl. BAG 23. August 2012 - 8 AZR 285/11 - Rn. 18."}
@@ -125,3 +126,18 @@ def test_antwort_ergaenzen_mit_aenderung(monkeypatch):
     assert ergebnis["antwort"].index("Ändernde") < ergebnis["antwort"].index("**5. Offen**")
     from belege import aussagen_finden
     assert all("Ändernde" not in a["satz"] for a in aussagen_finden(ergebnis["antwort"]))
+
+
+# --- Aufgabe 5: Unionsrecht ---------------------------------------------------
+
+def test_unionsrecht_block_nur_aus_zitierten_randnummern(monkeypatch):
+    import suche
+    from test_normen import RN_38
+    monkeypatch.setattr(suche, "urteil_nach_aktenzeichen", lambda az: None)   # ohne Datenbank
+    t = {**BAG, "kontext": RN_38}
+    block = unionsrecht_block([t], {1: {"relevant": True, "randnummern": [38]}})
+    assert "> - [1] 8 AZR 4/15: Vorlagebeschluss 8 AZR 848/13 (A) (Rn. 38)" in block
+    assert "[C-423/15](https://curia.europa.eu/juris/liste.jsf?num=C-423/15)" in block
+    assert "Verweis auf Rechtsprechung des EuGH" not in block                # genauerer Verweis vorhanden
+    assert "nicht im Bestand" in block
+    assert unionsrecht_block([t], {1: {"relevant": True, "randnummern": [37]}}) == ""

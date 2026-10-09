@@ -24,6 +24,7 @@ import belege
 import config
 import ergaenzung
 import llm
+import normen
 import suche
 
 GOLDFRAGEN = Path(__file__).parent / "tests" / "goldfragen.json"
@@ -59,6 +60,8 @@ def frage_bewerten(gold: dict) -> dict:
             {"aendernd": g["aendernd"]["aktenzeichen"], "nr": g["aendernd"].get("nr"),
              "dort_zitiert": [b["treffer"]["aktenzeichen"] for b in g["betroffen"]]}
             for g in ergaenzt["entwicklung"]],
+        "unionsrecht": [z for z in antwort.split("\n") if z.startswith("> - [") and "Unionsrecht" not in z
+                        and any(art in z for art, _ in normen.UNIONSRECHT)],
         "zitatpruefung": belege.zusammenfassung(aussagen),
         "dauer": round(time.time() - start),
         "treffer": [f"[{t['nr']}] {t['gericht']} {t['datum']} {t['aktenzeichen']}" for t in treffer],

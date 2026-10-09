@@ -73,6 +73,14 @@ def anzahl_urteile() -> int:
         return db.execute("SELECT COUNT(*) FROM urteile").fetchone()[0]
 
 
+def urteil_nach_aktenzeichen(aktenzeichen: str) -> dict | None:
+    """Ein Urteil des Bestands mit genau diesem Aktenzeichen (ohne Volltext), sonst None."""
+    with closing(_db()) as db:
+        zeile = db.execute("SELECT id, gericht, typ, datum, aktenzeichen, slug FROM urteile "
+                           "WHERE aktenzeichen = ?", (aktenzeichen,)).fetchone()
+    return dict(zeile) if zeile else None
+
+
 def gerichtsbarkeiten() -> list[str]:
     """Alle Gerichtsbarkeiten im Bestand (für die Auswahl in der Seitenleiste)."""
     with closing(_db()) as db:

@@ -3,6 +3,7 @@
   metadaten_einsetzen - Gericht, Datum und Aktenzeichen in Abschnitt 3 aus der Datenbank,
                         falsche Daten oder Aktenzeichen im übrigen Text werden korrigiert
   aenderungen_block   - Abschnitt 4: Rechtsprechungsänderungen (ändernde und dort zitierte Urteile)
+  unionsrecht_block   - Abschnitt 5: Bezüge zum Unionsrecht (EuGH-Vorlagen, Richtlinien)
   antwort_ergaenzen   - alles zusammen, so wie es die App und bewertung.py aufrufen
 
 Ergänzte Blöcke beginnen mit ">" (Zitat-Markdown): So sind sie als automatisch erkennbar,
@@ -17,6 +18,8 @@ import abweichung
 import belege
 import config
 import llm
+import normen
+import suche
 
 STICHPUNKT = re.compile(r"^(\s*[-*+]\s+)(.*)$")
 GEDANKENSTRICH = re.compile(r"\s+[–—-]\s+")
@@ -130,6 +133,57 @@ def aenderungen_block(gruppen: list[dict]) -> str:
     return "\n".join(zeilen)
 
 
+def unionsrecht_finden(t: dict, randnummern: list[int] | None = None) -> list[dict]:
+    """Unionsrechtliche Bezüge im Auszug eines Treffers.
+
+    Hat die Einzelprüfung Randnummern genannt, zählen nur Bezüge in genau diesen
+    Randnummern - dort steht die Begründung, auf die sich die Antwort stützt.
+    """
+    text = "\n\n".join(str(t.get(feld) or "") for feld in ("kontext", "bewertung"))
+    bezuege = normen.unionsrecht_bezuege(text)
+    if randnummern:
+        bezuege = [b for b in bezuege if b["rn"] in randnummern]
+    if any(b["art"] in ("Vorlagebeschluss", "EuGH-Rechtssache") for b in bezuege):
+        bezuege = [b for b in bezuege if b["art"] != "Rechtsprechung des EuGH"]   # genauerer Verweis da
+    return bezuege
+
+
+def _bezug_text(b: dict) -> str:
+    """"Vorlagebeschluss 8 AZR 848/13 (A) (Rn. 38)" - mit Link, wo es einen gibt."""
+    fund = b["fund"]
+    im_bestand = suche.urteil_nach_aktenzeichen(fund) if b["art"] in ("Vorlagebeschluss", "EuGH-Rechtssache") else None
+    if im_bestand:
+        fund = f"[{fund}](https://de.openlegaldata.io/case/{im_bestand['slug']})"
+    elif b["art"] == "EuGH-Rechtssache":
+        fund = f"[{fund}]({normen.curia_url(fund)})"
+    if b["art"] == "Rechtsprechung des EuGH":
+        text = "Verweis auf Rechtsprechung des EuGH"
+    elif b["art"] == "Vorabentscheidungsverfahren":
+        text = f"Vorabentscheidungsverfahren („{fund}“)"
+    else:
+        text = f"{b['art']} {fund}"
+    return text + (f" (Rn. {b['rn']})" if b["rn"] else "")
+
+
+def unionsrecht_block(ausgewertet: list[dict], pruefungen: dict | None = None) -> str:
+    """Abschnitt 5: Bezüge zum Unionsrecht, die das Modell sonst übersieht.
+
+    Die Entscheidungen des EuGH selbst sind nicht im Bestand und werden nicht ausgewertet -
+    der Block sagt das ausdrücklich, damit die Lücke sichtbar bleibt.
+    """
+    zeilen = []
+    for t in ausgewertet:
+        randnummern = (pruefungen or {}).get(t["nr"], {}).get("randnummern")
+        bezuege = unionsrecht_finden(t, randnummern)
+        if bezuege:
+            zeilen.append(f"> - [{t['nr']}] {t['aktenzeichen']}: " + "; ".join(_bezug_text(b) for b in bezuege))
+    if not zeilen:
+        return ""
+    return "\n".join(["> **Unionsrecht** · automatisch erkannt", ">", *zeilen, ">",
+                      "> Die Entscheidungen des EuGH sind nicht im Bestand und wurden nicht ausgewertet. "
+                      "Ob sie die Antwort ändern, muss gesondert geprüft werden."])
+
+
 def antwort_ergaenzen(antwort: str, treffer: list[dict], pruefungen: dict | None = None) -> dict:
     """Alle Ergänzungen per Code, so wie sie die App und bewertung.py aufrufen.
 
@@ -145,4 +199,5 @@ def antwort_ergaenzen(antwort: str, treffer: list[dict], pruefungen: dict | None
     antwort, korrekturen = metadaten_einsetzen(belege.rn_klammern(antwort), treffer)
     gruppen = abweichung.entwicklung(ausgewertet)
     antwort = einfuegen(antwort, 4, aenderungen_block(gruppen))
+    antwort = einfuegen(antwort, 5, unionsrecht_block(ausgewertet, pruefungen))
     return {"antwort": antwort, "korrekturen": korrekturen, "entwicklung": gruppen}

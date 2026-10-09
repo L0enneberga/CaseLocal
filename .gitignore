@@ -1,5 +1,5 @@
 # Daten und Datenbanken (zu gross, ODbL-Lizenz) - nicht hochladen
-daten/
+/daten/
 
 # Python
 __pycache__/

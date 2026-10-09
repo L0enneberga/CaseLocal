@@ -13,6 +13,7 @@ import ollama
 
 import config
 import gliederung
+import normen
 
 PROMPT_SCHLAGWORTE = """Du bist juristische Rechercheassistenz für deutsches Recht.
 Wandle die Frage des Nutzers in 3 bis 8 Suchbegriffe für eine Urteilsdatenbank um.
@@ -70,6 +71,8 @@ Regeln:
 - Berücksichtige Instanz, Bedeutung und Datum: Entscheidungen oberster Gerichte (BVerfG, BGH, BAG, BVerwG, BSG, BFH, EuGH) vor denen der Instanzgerichte, häufig zitierte vor selten zitierten, neuere vor älteren.
 - Schreibe einem Gericht nur zu, was es selbst entschieden hat – nicht die Ansicht der Vorinstanz oder der Parteien, die es nur wiedergibt. Randnummern mit [Wiedergabe der Vorinstanz] sind nie die Auffassung des zitierten Gerichts.
 - Nenne Daten und Aktenzeichen der Urteile nirgends selbst, verweise immer mit [n].
+- Den Wortlaut einer Norm aus den "Gesetzestexten" darfst du zitieren. Eine Auslegung der Norm nur, wenn ein Urteil sie vornimmt, und dann mit [n].
+- Der Wortlaut ist der heutige Stand. Ältere Urteile können sich auf eine frühere Fassung beziehen.
 - Erfinde keine Urteile, Aktenzeichen oder Normen.
 - Sachlich, auf Deutsch, höchstens 450 Wörter. Dies ist keine Rechtsberatung."""
 
@@ -220,6 +223,36 @@ def notiz(t: dict, pruefung: dict) -> str:
     return "\n".join(zeilen)
 
 
+def normtexte(pruefungen: dict[int, dict]) -> str:
+    """Wortlaut der Normen, die die Einzelprüfung bei den relevanten Urteilen am häufigsten nennt.
+
+    Der Text kommt per Code aus der Datenbank (normen.nachschlagen), nie vom Modell.
+    Höchstens config.NORMEN_MAX Normen, je höchstens config.NORMTEXT_ZEICHEN Zeichen; ist ein
+    Absatz zitiert ("§ 15 Abs. 2 AGG"), nur dieser. Jede Norm steht nur einmal im Material,
+    auch wenn sie in mehreren Urteilen vorkommt.
+    """
+    haeufigkeit: dict[tuple, int] = {}
+    for p in pruefungen.values():
+        if p["relevant"]:
+            for angabe in p["normen"]:
+                for f in normen.normen_finden(angabe):
+                    schluessel = (f["art"], f["nr"], f["gesetz"], f["absatz"])
+                    haeufigkeit[schluessel] = haeufigkeit.get(schluessel, 0) + 1
+    teile, gesehen = [], set()
+    for (art, nr, gesetz, absatz), _ in sorted(haeufigkeit.items(), key=lambda x: -x[1]):
+        norm = normen.nachschlagen(art, nr, gesetz, absatz)
+        if norm is None or norm["norm"] in gesehen:
+            continue
+        gesehen.add(norm["norm"])
+        text = norm["text"]
+        if len(text) > config.NORMTEXT_ZEICHEN:
+            text = text[: config.NORMTEXT_ZEICHEN].rsplit(" ", 1)[0] + " […]"
+        teile.append(f"{norm['norm']} – {norm['titel']}:\n{text}")
+        if len(teile) >= config.NORMEN_MAX:
+            break
+    return "\n\n".join(teile)
+
+
 # --- Stufe 2: die gegliederte Antwort --------------------------------------
 
 def antwort_streamen(frage: str, treffer: list[dict], pruefungen: dict[int, dict] | None = None):
@@ -234,6 +267,8 @@ def antwort_streamen(frage: str, treffer: list[dict], pruefungen: dict[int, dict
     else:
         material = "\n\n---\n\n".join(notiz(t, pruefungen[t["nr"]]) for t in treffer
                                       if pruefungen[t["nr"]]["relevant"])
+        if gesetzestexte := normtexte(pruefungen):
+            material += f"\n\n---\n\nGesetzestexte (Wortlaut, heutiger Stand):\n\n{gesetzestexte}"
     nachricht = f"Material zu den Urteilen:\n\n{material}\n\nFrage: {frage}"
     for stueck in ollama.chat(
         model=config.LLM_MODELL,

@@ -333,3 +333,29 @@ def hybride_suche(frage: str, schlagworte: list[str], anzahl: int = 8,
     for nr, eintrag in enumerate(treffer, 1):
         eintrag["nr"] = nr                             # die Nummer, mit der die Antwort zitiert: [nr]
     return treffer
+
+
+def normsuche(frage: str, anzahl: int = 5) -> list[dict]:
+    """Normen, deren Wortlaut der Frage sprachlich am ähnlichsten ist (Embeddings, bge-m3).
+
+    Nur für den Fall, dass keine Rechtsprechung passt. Ähnlichkeit ist keine rechtliche Prüfung.
+    Ergebnis: [{"norm": "§ 6 AGG", "titel", "text", "stand", "url"}, ...] - leer, wenn
+    gesetze_laden.py die Normsuche noch nicht aufgebaut hat.
+    """
+    client = chromadb.PersistentClient(path=str(config.CHROMA_PFAD))
+    try:
+        sammlung = client.get_collection(config.CHROMA_NORMEN)
+    except Exception:                                  # Sammlung gibt es noch nicht
+        return []
+    if not sammlung.count():
+        return []
+    ids = sammlung.query(query_embeddings=[einbetten(frage)], n_results=anzahl)["ids"][0]
+    with closing(_db()) as db:
+        ergebnis = []
+        for i in ids:
+            zeile = db.execute("SELECT n.art, n.nr, n.titel, n.text, n.url, g.gesetz, g.stand FROM normen n "
+                               "JOIN gesetze g ON g.kurzform = n.kurzform WHERE n.id = ?", (int(i),)).fetchone()
+            if zeile:
+                ergebnis.append({"norm": f"{zeile['art']} {zeile['nr']} {zeile['gesetz']}", "titel": zeile["titel"],
+                                 "text": zeile["text"], "stand": zeile["stand"], "url": zeile["url"]})
+    return ergebnis

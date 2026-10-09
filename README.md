@@ -37,7 +37,8 @@ Der Schwerpunkt liegt auf **nachprüfbaren Antworten**: Das Sprachmodell soll ni
 - **KI-Schlagworte**: ein lokales Sprachmodell übersetzt Fragen in juristische Suchbegriffe und verschlagwortet Urteile automatisch.
 - **Antworten mit Fundstellen (RAG)**: das Modell antwortet nur auf Grundlage der gefundenen Urteile und zitiert sie mit Nummer und Aktenzeichen.
 - **Filter**: Suche auf Gerichtsbarkeiten und einen Zeitraum eingrenzen.
-- **Normen verlinken**: Zitate wie „§ 573 Abs. 2 BGB“ oder „Art. 3 GG“ werden erkannt und auf gesetze-im-internet.de verlinkt.
+- **Gesetzestexte im Wortlaut**: Die 100 in den Urteilen meistzitierten Bundesgesetze liegen mit Wortlaut und Stand lokal vor (siehe [Gesetzestexte](#gesetzestexte)). Unter „Einschlägige Normen“ lässt sich jede Norm aufklappen. Das Modell bekommt den Wortlaut der wichtigsten Normen mit, darf aber nur Urteilen eine Auslegung entnehmen. Erfundene Paragraphen („§ 999 AGG“) werden rot markiert. Passt keine Rechtsprechung, schlägt eine Normsuche mögliche Normen vor, ohne KI-Einschätzung.
+- **Normen verlinken**: Zitate wie „§ 573 Abs. 2 BGB“ oder „Art. 3 GG“ werden erkannt und auf gesetze-im-internet.de verlinkt. Jede Trefferkarte zeigt die Normen, die das Urteil am häufigsten zitiert.
 
 ## Architektur
 
@@ -65,7 +66,8 @@ Frage ──► LLM: Suchbegriffe ──► hybride Suche ──► LLM: Einzelp
 | `index_bauen.py` | Teilt Urteile entlang der Gliederung in Abschnitte, berechnet Embeddings |
 | `schlagworte.py` | Optional: KI-Verschlagwortung |
 | `suche.py` | Schlagwort-, semantische und hybride Suche, Filter |
-| `normen.py` | Erkennt Normzitate und verlinkt sie |
+| `gesetze_laden.py` | Lädt die meistzitierten Bundesgesetze von gesetze-im-internet.de, baut die Normsuche |
+| `normen.py` | Erkennt Normzitate, schlägt ihren Wortlaut nach und verlinkt sie |
 | `llm.py` | Prompts und Aufrufe an das Sprachmodell (Einzelprüfung, Antwort, Zitatprüfung) |
 | `belege.py` | Zerlegt die Antwort in Sätze, prüft Belege und Metadaten, markiert das Ergebnis |
 | `ergaenzung.py` | Ergänzt die Antwort per Code: Urteilskopf aus der Datenbank, Block zu Rechtsprechungsänderungen, Unionsrecht |
@@ -110,8 +112,9 @@ hf auth login                    # Hugging-Face-Token eingeben
 ```bash
 python daten_laden.py            # 1. die 10.000 bedeutendsten Urteile auswählen und laden (ca. 3 GB)
 python index_bauen.py            # 2. Suchindex bauen (ca. 2-3 Stunden, kann unterbrochen werden)
-python schlagworte.py --anzahl 100   # 3. optional: KI-Schlagworte
-streamlit run app.py             # 4. App starten -> http://localhost:8501
+python gesetze_laden.py          # 3. die 100 meistzitierten Bundesgesetze laden (ca. 15 Minuten)
+python schlagworte.py --anzahl 100   # 4. optional: KI-Schlagworte
+streamlit run app.py             # 5. App starten -> http://localhost:8501
 ```
 
 ## Auswahl der Urteile
@@ -137,6 +140,30 @@ pytest
 ```
 
 Die Tests prüfen die Bausteine, die ohne Daten und ohne Ollama funktionieren (die Qualität der KI-Antworten misst `bewertung.py`, siehe [Messung](#messung)): Bedeutungs-Score und Kontingente der Auswahl, Erkennen der Urteilsgliederung und Randnummern, Zerlegen in Abschnitte, FTS5-Anfragen, Filter und Rangfolge, Satzzerlegung und Markierung der Zitatprüfung, Vorauswahl für Rechtsprechungsänderungen, das Einsetzen und Korrigieren von Gericht, Datum und Aktenzeichen, der Block zu Rechtsprechungsänderungen und das Erkennen von Normzitaten und unionsrechtlichen Bezügen.
+
+## Gesetzestexte
+
+`gesetze_laden.py` lädt den Wortlaut der Bundesgesetze, die in den 10.000 Urteilen am häufigsten zitiert werden, als XML von [gesetze-im-internet.de](https://www.gesetze-im-internet.de), dem Portal des Bundesministeriums der Justiz. Welche Gesetze das sind, ergibt sich aus dem Zitationsgraphen (Kanten Urteil → Norm) und einer eigenen Zählung der Normzitate in den Urteilstexten. Die eigene Zählung ist nötig, weil der Graph Schreibweisen wie „§ 31a SGB II“ kaum erkennt. Ein erneuter Aufruf lädt nur Gesetze, deren Datei sich geändert hat (`setup.bat` erledigt das mit).
+
+**Grundsatz:** Der Wortlaut wird per Code nachgeschlagen, nie vom Sprachmodell erzeugt. Das Modell darf ihn zitieren, eine Auslegung aber nur aus den Urteilen ableiten (mit Beleg [n]).
+
+| Wo | Was |
+| --- | --- |
+| Antwort, Abschnitt 2 | Jede genannte Norm zum Aufklappen: Wortlaut (bei „Abs. 2“ nur dieser Absatz), Stand, Link |
+| Material für das Modell | Wortlaut der bis zu 5 Normen, die die Einzelprüfung am häufigsten nennt, je höchstens 1.200 Zeichen (`NORMEN_MAX`, `NORMTEXT_ZEICHEN`) |
+| Prüfung der Antwort | Paragraphen, die es im geladenen Gesetz nicht gibt, werden rot markiert. Nicht geladene Gesetze (z. B. DSGVO) bekommen nur einen grauen Hinweis. |
+| Trefferkarte | Normen, die das Urteil am häufigsten zitiert, mit Link |
+| Keine passende Rechtsprechung | Normsuche über Embeddings: die 5 ähnlichsten Normen mit Wortlaut, ohne KI-Einschätzung |
+
+**Grenzen:**
+
+- **Wortlaut ist nicht Auslegung.** Aus dem Wortlaut von § 6 AGG allein wäre die Rechtsmissbrauchsfrage aus dem AGG-Beispiel nicht erkennbar. Rechtsauffassungen kommen deshalb nur aus Urteilen.
+- **Heutige Fassung.** Ein Urteil von 2012 hat die damals geltende Fassung angewendet. Die App zeigt den heutigen Stand und sagt das bei jeder Norm. Historische Fassungen bietet gesetze-im-internet.de nicht.
+- **Nur Bundesrecht, nur die meistzitierten Gesetze.** Landesrecht und EU-Recht (DSGVO, Richtlinien) fehlen, ebenso seltener zitierte Bundesgesetze (`GESETZE_ANZAHL` in `config.py`).
+- **Konsolidierung mit Verzögerung.** gesetze-im-internet.de arbeitet Änderungen nicht immer sofort ein. Der angezeigte Stand macht das transparent.
+- **Normsuche ist keine Subsumtion.** Sie findet Normen nach sprachlicher Ähnlichkeit zur Frage. Ob eine Norm anwendbar ist, sagt sie nicht.
+
+Gesetze sind nach § 5 UrhG gemeinfrei. Wie die Urteile sind die Gesetzestexte nicht Teil dieses Repositorys, jede Installation lädt sie selbst.
 
 ## Messung
 
@@ -200,6 +227,7 @@ series = {JCDL '20}
 
 - Datenbank: Open Legal Data, [Open Database License (ODbL 1.0)](https://opendatacommons.org/licenses/odbl/1-0/). Die Daten sind nicht Teil dieses Repositorys; jede Installation lädt sie selbst von Hugging Face.
 - Urteilstexte: Gerichtsentscheidungen sind nach § 5 UrhG gemeinfrei.
+- Gesetzestexte: von [gesetze-im-internet.de](https://www.gesetze-im-internet.de) (Bundesministerium der Justiz), nach § 5 UrhG gemeinfrei.
 - Code dieses Repositorys: MIT-Lizenz.
 
 **Weitere offene Bausteine**, auf denen das Projekt aufsetzt: [Ollama](https://ollama.com), das Embedding-Modell [bge-m3](https://huggingface.co/BAAI/bge-m3) (BAAI), das Sprachmodell Gemma (Google DeepMind), [ChromaDB](https://www.trychroma.com), [SQLite](https://sqlite.org) und [Streamlit](https://streamlit.io).

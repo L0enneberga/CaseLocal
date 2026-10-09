@@ -33,18 +33,18 @@ if not defined PY (
 
 rem --- 1. Virtuelle Umgebung --------------------------------------------
 if exist "%VPY%" (
-    echo [1/6] Virtuelle Umgebung .venv ist schon vorhanden.
+    echo [1/7] Virtuelle Umgebung .venv ist schon vorhanden.
 ) else (
-    echo [1/6] Lege die virtuelle Umgebung .venv an ...
+    echo [1/7] Lege die virtuelle Umgebung .venv an ...
     %PY% -m venv .venv || goto fehler
 )
 
 rem --- 2. Bibliotheken ---------------------------------------------------
-echo [2/6] Installiere die Bibliotheken - beim ersten Mal dauert das einige Minuten ...
+echo [2/7] Installiere die Bibliotheken - beim ersten Mal dauert das einige Minuten ...
 %VPY% -m pip install -q --disable-pip-version-check -r requirements.txt || goto fehler
 
 rem --- 3. Ollama und Modelle ---------------------------------------------
-echo [3/6] Prüfe Ollama und lade die Modelle aus config.py ...
+echo [3/7] Prüfe Ollama und lade die Modelle aus config.py ...
 where ollama >nul 2>nul || (
     echo [Fehler] Ollama ist nicht installiert: https://ollama.com/download
     goto fehler
@@ -56,7 +56,7 @@ for /f "delims=" %%m in ('%VPY% -c "import config; print(config.EMBED_MODELL); p
 )
 
 rem --- 4. Zugang zum Datensatz auf Hugging Face --------------------------
-echo [4/6] Prüfe den Hugging-Face-Zugang ...
+echo [4/7] Prüfe den Hugging-Face-Zugang ...
 .venv\Scripts\hf.exe auth whoami >nul 2>nul || (
     echo        Du bist noch nicht bei Hugging Face angemeldet. Vorher einmalig:
     echo         1. Auf https://huggingface.co/datasets/openlegaldata/court-decisions-germany
@@ -67,11 +67,13 @@ echo [4/6] Prüfe den Hugging-Face-Zugang ...
     .venv\Scripts\hf.exe auth login || goto fehler
 )
 
-rem --- 5. und 6. Daten laden, Suchindex bauen ----------------------------
-echo [5/6] Wähle und lade die Urteile - beim ersten Mal ca. 3 GB, das dauert eine Weile ...
+rem --- 5. bis 7. Daten laden, Suchindex bauen, Gesetze laden ----------------------------
+echo [5/7] Wähle und lade die Urteile - beim ersten Mal ca. 3 GB, das dauert eine Weile ...
 %VPY% daten_laden.py || goto fehler
-echo [6/6] Baue den Suchindex - bei 10.000 Urteilen etwa 2 bis 3 Stunden, abbrechen und fortsetzen geht ...
+echo [6/7] Baue den Suchindex - bei 10.000 Urteilen etwa 2 bis 3 Stunden, abbrechen und fortsetzen geht ...
 %VPY% index_bauen.py || goto fehler
+echo [7/7] Lade die 100 meistzitierten Bundesgesetze von gesetze-im-internet.de - beim erneuten Start nur geänderte ...
+%VPY% gesetze_laden.py || goto fehler
 
 rem --- Optional: KI-Schlagworte ------------------------------------------
 echo.

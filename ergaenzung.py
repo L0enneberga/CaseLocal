@@ -4,6 +4,7 @@
                         falsche Daten oder Aktenzeichen im übrigen Text werden korrigiert
   aenderungen_block   - Abschnitt 4: Rechtsprechungsänderungen (ändernde und dort zitierte Urteile)
   unionsrecht_block   - Abschnitt 5: Bezüge zum Unionsrecht (EuGH-Vorlagen, Richtlinien)
+  normen_pruefen      - jede genannte Norm mit Wortlaut; erfundene Paragraphen werden erkannt
   antwort_ergaenzen   - alles zusammen, so wie es die App und bewertung.py aufrufen
 
 Ergänzte Blöcke beginnen mit ">" (Zitat-Markdown): So sind sie als automatisch erkennbar,
@@ -208,12 +209,32 @@ def unionsrecht_block(ausgewertet: list[dict], pruefungen: dict | None = None,
                       "Ob sie die Antwort ändern, muss gesondert geprüft werden."])
 
 
+def normen_pruefen(antwort: str) -> list[dict]:
+    """Alle Normzitate der Antwort mit Status und Wortlaut (ohne die per Code ergänzten Blöcke).
+
+    Status: "gefunden", "fehlt" (das Gesetz ist geladen, den Paragraphen gibt es darin nicht -
+    vermutlich erfunden) oder "nicht im Bestand" (Gesetz nicht geladen, z. B. Landes- oder EU-Recht).
+    Ergebnis: [{"fund", "art", "nr", "absatz", "gesetz", "abschnitt", "status", "wortlaut"}, ...]
+    """
+    zeilen = antwort.split("\n")
+    gefunden: dict[str, dict] = {}
+    for zeile, abschnitt in zip(zeilen, belege.abschnitte(zeilen)):
+        if zeile.lstrip().startswith(">"):
+            continue
+        for f in normen.normen_finden(zeile):
+            if f["fund"] not in gefunden:
+                status = normen.norm_status(f["art"], f["nr"], f["gesetz"])
+                wortlaut = normen.nachschlagen(f["art"], f["nr"], f["gesetz"], f["absatz"]) if status == "gefunden" else None
+                gefunden[f["fund"]] = {**f, "abschnitt": abschnitt, "status": status, "wortlaut": wortlaut}
+    return list(gefunden.values())
+
+
 def antwort_ergaenzen(antwort: str, treffer: list[dict], pruefungen: dict | None = None) -> dict:
     """Alle Ergänzungen per Code, so wie sie die App und bewertung.py aufrufen.
 
     treffer sind alle Treffer (mit "abweichungen", falls geprüft), pruefungen das Ergebnis
     der Einzelprüfung. Berücksichtigt werden die Urteile, die das Modell ausgewertet hat.
-    Ergebnis: {"antwort", "korrekturen", "entwicklung"}
+    Ergebnis: {"antwort", "korrekturen", "entwicklung", "normen"}
     """
     if pruefungen is None:
         ausgewertet = treffer[: config.KI_TREFFER]
@@ -224,4 +245,5 @@ def antwort_ergaenzen(antwort: str, treffer: list[dict], pruefungen: dict | None
     gruppen = abweichung.entwicklung(ausgewertet)
     antwort = einfuegen(antwort, 4, aenderungen_block(gruppen))
     antwort = einfuegen(antwort, 5, unionsrecht_block(ausgewertet, pruefungen, gruppen))
-    return {"antwort": antwort, "korrekturen": korrekturen, "entwicklung": gruppen}
+    return {"antwort": antwort, "korrekturen": korrekturen, "entwicklung": gruppen,
+            "normen": normen_pruefen(antwort)}

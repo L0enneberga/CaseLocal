@@ -55,7 +55,11 @@ LLM_KONTEXT = 16384           # wie viel Text das LLM auf einmal "sehen" darf (i
 # strenger bewertet, und bei langen Urteilen denkt sich das Modell oft fest (keine Antwort).
 DENKEN_ANTWORT = False        # beim Schreiben der Antwort
 DENKEN_PRUEFUNG = False       # Einzelprüfung, Zitatprüfung, Prüfung auf Rechtsprechungsänderungen
-KI_TREFFER = 6                # so viele der besten Treffer wertet das LLM für die Antwort aus
+GESETZE_ANZAHL = 100         # so viele der meistzitierten Bundesgesetze lädt gesetze_laden.py
+NORMEN_MAX = 5                # höchstens so viele Normtexte gehen ins Material für die Antwort
+NORMTEXT_ZEICHEN = 1200       # ... je höchstens so lang (zitierter Absatz, sonst Anfang der Norm)
+CHROMA_NORMEN = "normen"      # ChromaDB-Sammlung für die Normsuche
+KI_TREFFER = 6               # so viele der besten Treffer wertet das LLM für die Antwort aus
 
 # Gewichtung der Urteilsteile bei der Bedeutungssuche (1.0 = neutral).
 # Gründe und Leitsätze enthalten die Wertung des Gerichts, der Tatbestand

@@ -109,7 +109,8 @@ def recherchieren(frage: str) -> dict:
     Neuzeichnen der Seite (z. B. nach einem Klick in der Seitenleiste) erhalten bleibt.
     """
     e = {"frage": frage, "treffer": [], "auswahl": [], "pruefungen": None,
-         "antwort": None, "aussagen": None, "korrekturen": [], "entwicklung": []}
+         "antwort": None, "aussagen": None, "korrekturen": [], "entwicklung": [], "normen": [],
+         "normvorschlaege": []}
 
     with st.status("Suche passende Urteile …", type="step") as status:
         e["schlagworte"] = llm.frage_zu_schlagworten(frage) if ki_schlagworte else frage.split()
@@ -139,6 +140,7 @@ def recherchieren(frage: str) -> dict:
                           state="complete", expanded=False)
         if not relevant:
             e["antwort"] = ""
+            e["normvorschlaege"] = suche.normsuche(frage)
             return e
 
     # Stufe 2: gegliederte Antwort, live angezeigt
@@ -146,7 +148,7 @@ def recherchieren(frage: str) -> dict:
     roh = st.write_stream(llm.antwort_streamen(frage, e["auswahl"], e["pruefungen"]))
     ergaenzt = ergaenzung.antwort_ergaenzen(roh, e["treffer"], e["pruefungen"])
     e["antwort"], e["korrekturen"] = ergaenzt["antwort"], ergaenzt["korrekturen"]
-    e["entwicklung"] = ergaenzt["entwicklung"]
+    e["entwicklung"], e["normen"] = ergaenzt["entwicklung"], ergaenzt["normen"]
 
     # Zitatprüfung
     if zitatpruefung:
@@ -158,16 +160,66 @@ def recherchieren(frage: str) -> dict:
     return e
 
 
+def wortlaut_anzeigen(norm: dict, titel: str | None = None) -> None:
+    """Eine Norm zum Aufklappen: Wortlaut, Stand und Link zu gesetze-im-internet.de."""
+    with st.expander(titel or f"{norm['norm']} – {norm['titel']}".rstrip(" –"), icon=":material/gavel:"):
+        st.markdown("  \n".join(norm["text"].split("\n")))
+        st.caption(f"Stand: {norm['stand'] or 'unbekannt'} · heutige Fassung – ältere Urteile können eine "
+                   f"frühere Fassung angewendet haben · [gesetze-im-internet.de]({norm['url']})")
+
+
+def teilen(text: str, abschnitt: int) -> tuple[str, str]:
+    """Teilt die Antwort nach einem Abschnitt: (bis einschließlich Abschnitt, Rest)."""
+    zeilen = text.split("\n")
+    ende = next((i for i, n in enumerate(belege.abschnitte(zeilen)) if n > abschnitt), len(zeilen))
+    return "\n".join(zeilen[:ende]), "\n".join(zeilen[ende:])
+
+
+def normen_markieren(text: str, normen_liste: list[dict], aussagen: list[dict] | None) -> str:
+    """Erfundene Paragraphen ("fehlt") bekommen eine rote Markierung direkt im Text.
+
+    Ausnahme: Steht die Norm in einem Satz, den die Zitatprüfung schon farbig hinterlegt hat,
+    erscheint der Hinweis nur unter "Hinweise der Zitatprüfung" (verschachtelte Farben
+    würden die Darstellung zerstören).
+    """
+    hinterlegt = [a["satz"] for a in aussagen or [] if a["urteil"] in ("teilweise", "nein")]
+    for n in normen_liste:
+        if n["status"] == "fehlt" and not any(n["fund"] in satz for satz in hinterlegt):
+            text = text.replace(n["fund"], f"{n['fund']} :red-badge[:material/error: Norm im Gesetz nicht gefunden]", 1)
+    return text
+
+
 def antwort_anzeigen(e: dict) -> None:
     st.subheader("Antwort")
     if e["antwort"] == "":
         st.info("Keines der geprüften Urteile beantwortet die Frage. Tipp: anders formulieren, "
                 "Filter lockern oder mehr Treffer einstellen.")
+        if e.get("normvorschlaege"):
+            st.markdown("**Möglicherweise einschlägige Normen** (Normsuche nach sprachlicher Ähnlichkeit zur "
+                        "Frage, ohne Rechtsprechung und ohne Prüfung durch das Sprachmodell):")
+            for norm in e["normvorschlaege"]:
+                wortlaut_anzeigen(norm)
+            st.caption("Ob und wie eine Norm auf die Frage anzuwenden ist, sagen nur Urteile und Kommentare. "
+                       "Die Auswahl ist keine rechtliche Einschätzung.")
         return
-    if e["aussagen"] is None:
-        st.markdown(absaetze(e["antwort"]))
-    else:
-        st.markdown(absaetze(belege.markieren(e["antwort"], e["aussagen"])))
+    normen_liste = e.get("normen") or []
+    text = e["antwort"] if e["aussagen"] is None else belege.markieren(e["antwort"], e["aussagen"])
+    text = normen_markieren(text, normen_liste, e["aussagen"])
+    bis_normen, rest = teilen(text, 2)
+    st.markdown(absaetze(bis_normen))
+    im_wortlaut = {}                                   # Normen aus Abschnitt 2, jede einmal
+    for n in normen_liste:
+        if n["abschnitt"] == 2 and n["wortlaut"]:
+            im_wortlaut.setdefault(n["wortlaut"]["norm"], n["wortlaut"])
+    for norm in im_wortlaut.values():
+        wortlaut_anzeigen(norm, f"Wortlaut: {norm['norm']} – {norm['titel']}".rstrip(" –"))
+    nicht_geladen = sorted({n["gesetz"] for n in normen_liste if n["status"] == "nicht im Bestand"})
+    if nicht_geladen:
+        st.caption(":gray[:material/info:] Nicht im Bestand der Gesetzestexte (nur die meistzitierten "
+                   f"Bundesgesetze): {', '.join(nicht_geladen)}")
+    if rest.strip():
+        st.markdown(absaetze(rest))
+    if e["aussagen"] is not None:
         z = belege.zusammenfassung(e["aussagen"])
         st.caption(f"Zitatprüfung von {len(e['aussagen']) - z['hinweis']} belegten Aussagen: "
                    f":green[:material/check:] {z['ja']} gestützt · "
@@ -185,8 +237,13 @@ def antwort_anzeigen(e: dict) -> None:
                                 f"(https://de.openlegaldata.io/case/{u['slug']})\n\n> „…{b['stelle']}…“")
     offen = [a for a in e["aussagen"] or [] if a["urteil"] not in ("ja", "hinweis")]
     korrekturen = e.get("korrekturen") or []
-    if offen or korrekturen:
-        with st.expander(f"Hinweise der Zitatprüfung ({len(offen) + len(korrekturen)})", icon=":material/rule:"):
+    erfunden = [n for n in normen_liste if n["status"] == "fehlt"]
+    if offen or korrekturen or erfunden:
+        anzahl = len(offen) + len(korrekturen) + len(erfunden)
+        with st.expander(f"Hinweise der Zitatprüfung ({anzahl})", icon=":material/rule:"):
+            for n in erfunden:
+                st.markdown(f"- :red[:material/error:] **{n['fund']}**: Norm im Gesetz nicht gefunden – "
+                            f"das {n['gesetz']} ist geladen, enthält diesen Paragraphen aber nicht.")
             for k in korrekturen:
                 st.markdown(f"- :blue[:material/edit:] *{k['satz']}*  \n  {k['hinweis']}")
             for a in offen:
@@ -236,6 +293,10 @@ def anzeigen(e: dict) -> None:
             if t["tenor"]:
                 tenor = gliederung.lesbar(t["tenor"])
                 st.markdown(f"**Tenor:** {normen.verlinken(tenor[:500])}" + (" […]" if len(tenor) > 500 else ""))
+            zitiert = normen.zitierte_normen(t["id"])
+            if zitiert:
+                st.markdown("**Zitierte Normen:** " + " · ".join(
+                    f"[{n['norm']}]({n['url']})" if n["url"] else n["norm"] for n in zitiert))
             st.markdown(f"**Fundstelle:** {t['fundstelle']}")
             auszug = gliederung.ab_randnummer(t["auszug"])
             vorinstanz = set(t.get("vorinstanz_rn") or [])

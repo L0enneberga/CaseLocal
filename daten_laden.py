@@ -56,6 +56,46 @@ def tabellen_anlegen(db: sqlite3.Connection) -> None:
             PRIMARY KEY (von_id, nach_id)
         );
         CREATE INDEX IF NOT EXISTS zitierungen_nach ON zitierungen (nach_id);
+
+        -- Welche Normen zitiert ein Urteil? (Zitationsgraph, Kanten Urteil -> Norm; gesetze_laden.py)
+        CREATE TABLE IF NOT EXISTS norm_zitierungen (
+            urteil_id  INTEGER,
+            gesetz     TEXT,                -- Abkürzung, z. B. "AGG"
+            kurzform   TEXT,                -- Adresse bei gesetze-im-internet.de, z. B. "agg"
+            paragraph  TEXT,                -- z. B. "§ 6" oder "Art. 3"
+            anzahl     INTEGER,             -- wie oft das Urteil die Norm zitiert
+            PRIMARY KEY (urteil_id, kurzform, paragraph)
+        );
+
+        -- Gesetzestexte von gesetze-im-internet.de (gesetze_laden.py)
+        CREATE TABLE IF NOT EXISTS gesetze (
+            kurzform   TEXT PRIMARY KEY,
+            gesetz     TEXT,                -- amtliche Abkürzung, z. B. "AGG"
+            titel      TEXT,
+            stand      TEXT,                -- z. B. "Zuletzt geändert durch Art. 15 G v. 22.12.2023 I Nr. 414"
+            geaendert  TEXT,                -- "Last-Modified" der Datei, für die Aktualisierung
+            geladen_am TEXT
+        );
+        -- Alle Schreibweisen eines Gesetzes ("SGB II", "SGB 2") -> kurzform
+        CREATE TABLE IF NOT EXISTS gesetz_namen (
+            name      TEXT PRIMARY KEY,
+            kurzform  TEXT
+        );
+        CREATE TABLE IF NOT EXISTS normen (
+            id         INTEGER PRIMARY KEY,
+            kurzform   TEXT,
+            gesetz     TEXT,
+            art        TEXT,                -- "§" oder "Art."
+            nr         TEXT,                -- "6", "573a"
+            titel      TEXT,
+            text       TEXT,                -- Absätze und Aufzählungen je auf eigener Zeile
+            url        TEXT
+        );
+        CREATE INDEX IF NOT EXISTS normen_nr ON normen (kurzform, nr);
+        CREATE VIRTUAL TABLE IF NOT EXISTS normen_fts USING fts5(
+            gesetz, nr, titel, text,
+            tokenize = 'unicode61 remove_diacritics 2'
+        );
         """
     )
     vorhanden = {zeile[1] for zeile in db.execute("PRAGMA table_info(urteile)")}

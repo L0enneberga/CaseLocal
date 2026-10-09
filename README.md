@@ -6,17 +6,28 @@ Recherche in den 10.000 bedeutendsten deutschen Gerichtsentscheidungen – mit h
 
 > **Datengrundlage:** CaseLocal nutzt den Urteilsdatensatz von [Open Legal Data](https://openlegaldata.io) (Ostendorff, Blume & Ostendorff, 2020). Das Sammeln, Aufbereiten und offene Bereitstellen von über 400.000 Gerichtsentscheidungen ist ihre Arbeit, nicht meine. Herzlichen Dank dafür! Details und Zitat: [Datengrundlage und Dank](#datengrundlage-und-dank).
 
-**Gegliederte Antwort:** Kurzantwort, einschlägige Normen und Rechtsprechung mit Randnummern. Jede belegte Aussage ist gegen das zitierte Urteil geprüft: gestützt (✓), nicht gestützt (rot markiert).
-
-![Gegliederte KI-Antwort mit geprüften Belegen](docs/screenshot1.png)
-
-**Rechtsprechungsänderungen und Zitatprüfung:** Die Antwort weist darauf hin, wenn ein Gericht seine frühere Linie aufgegeben hat. Darunter steht die Bilanz der Zitatprüfung, die Treffer zeigen Instanz, Zitierhäufigkeit und Jahr.
-
-![Hinweis auf Rechtsprechungsänderung und Bilanz der Zitatprüfung](docs/screenshot2.png)
-
-**Fundstelle im Urteil:** der passende Abschnitt der Gründe mit Randnummern und verlinkten Normen. Urteile, die die KI-Einzelprüfung als nicht einschlägig einstuft, werden als „aussortiert“ gekennzeichnet.
-
-![Fundstelle mit Randnummern und verlinkten Normen](docs/screenshot3.png)
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="docs/screenshot1.png"><img src="docs/screenshot1.png" alt="Gegliederte KI-Antwort mit Normen im Wortlaut"></a><br>
+      <sub><b>Gegliederte Antwort:</b> Gericht, Datum und Aktenzeichen aus der Datenbank, jede belegte Aussage geprüft (✓). Unter „Einschlägige Normen“ lässt sich der Wortlaut aufklappen.</sub>
+    </td>
+    <td width="50%" valign="top">
+      <a href="docs/screenshot2.png"><img src="docs/screenshot2.png" alt="Einzelprüfung jedes gefundenen Urteils"></a><br>
+      <sub><b>Einzelprüfung:</b> Das Modell prüft jedes Urteil einzeln. Was hat das Gericht entschieden, in welcher Randnummer? Unpassende Urteile werden aussortiert.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="docs/screenshot3.png"><img src="docs/screenshot3.png" alt="Rechtsprechungsänderung, Unionsrecht und Zitatprüfung"></a><br>
+      <sub><b>Per Code ergänzt:</b> Rechtsprechungsänderung (ändernde und dort zitierte Entscheidung), Verweis auf die EuGH-Vorlage und die Bilanz der Zitatprüfung.</sub>
+    </td>
+    <td width="50%" valign="top">
+      <a href="docs/screenshot4.png"><img src="docs/screenshot4.png" alt="Trefferkarte mit zitierten Normen und Fundstelle"></a><br>
+      <sub><b>Trefferkarte:</b> Instanz, Zitierhäufigkeit, Tenor, die meistzitierten Normen des Urteils und die Fundstelle mit Randnummern und verlinkten Normen.</sub>
+    </td>
+  </tr>
+</table>
 
 ## Was das Projekt kann
 

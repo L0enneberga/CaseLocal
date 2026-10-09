@@ -5,6 +5,11 @@ Ablauf:
   2. pruefen          - lässt das LLM je zitiertem Urteil alle Sätze prüfen, die sich darauf berufen
   3. markieren        - setzt die Ergebnisse als Farbmarkierung in die Antwort ein
 
+Geprüft werden nur Aussagen über Urteilsinhalte. Hinweis-Sätze ("muss am Volltext geprüft
+werden", alles in Abschnitt 5) bekommen den Status "hinweis" und werden nicht gezählt.
+Zeilen, die mit ">" beginnen, hat der Code selbst ergänzt (siehe ergaenzung.py) - sie
+werden gar nicht geprüft.
+
 Die Prüfung macht ein Sprachmodell. Sie macht Fehler sichtbar, ersetzt aber
 nicht den Blick ins Urteil.
 """
@@ -14,6 +19,15 @@ import llm
 
 ZITAT = re.compile(r"\[(\d+(?:\s*[,;]\s*\d+)*)\]")
 LISTENANFANG = re.compile(r"^(\s*(?:[-*+]|\d+\.)\s+)")
+# "**3. Rechtsprechung**" oder "### 3. Rechtsprechung" - nicht aber ein Listenpunkt "3. Weiter"
+ABSCHNITT = re.compile(r"^\s*(?:#{1,6}\s*\**|\*\*)\s*(\d)\.\s*[^*\n]+?\**\s*$")
+NICHT_BEANTWORTET = 5                                  # Abschnitt "Was die Urteile nicht beantworten"
+# Sätze, die nichts über den Inhalt eines Urteils behaupten
+HINWEIS_SATZ = re.compile(
+    r"(?:am|im) Volltext (?:zu )?(?:prüfen|geprüft|nachzulesen)|keine gefunden"
+    r"|das (?:vorliegende )?Material (?:beantwortet|sagt|enthält|äußert sich|lässt)[^.]{0,60}?nicht"
+    r"|keine Rechtsberatung|(?:nicht|kaum) beantwortet|lässt sich (?:dem Material|den Urteilen) nicht entnehmen",
+    re.IGNORECASE)
 
 # Abkürzungen, nach deren Punkt KEIN neuer Satz beginnt
 ABKUERZUNGEN = {"abs.", "nr.", "art.", "rn.", "az.", "vgl.", "bzw.", "ca.", "ggf.", "insb.",
@@ -63,25 +77,51 @@ def saetze_teilen(text: str) -> list[str]:
     return saetze
 
 
+def abschnitte(zeilen: list[str]) -> list[int]:
+    """Nummer des Abschnitts, in dem jede Zeile steht (0 = vor dem ersten Abschnitt)."""
+    aktuell, ergebnis = 0, []
+    for zeile in zeilen:
+        treffer = ABSCHNITT.match(zeile)
+        if treffer:
+            aktuell = int(treffer[1])
+        ergebnis.append(aktuell)
+    return ergebnis
+
+
 def aussagen_finden(antwort: str) -> list[dict]:
     """Alle Sätze der Antwort, die mindestens ein Urteil zitieren.
 
-    Ergebnis: [{"satz": "...", "quellen": [2, 3]}, ...]
+    Ergebnis: [{"satz": "...", "quellen": [2, 3], "hinweis": False}, ...]
+    "hinweis" ist True bei Sätzen, die nichts über ein Urteil behaupten (werden nicht geprüft).
     """
     aussagen = []
-    for zeile in antwort.split("\n"):
-        if zeile.lstrip().startswith("#"):
-            continue                                   # Überschriften enthalten keine Aussagen
+    zeilen = antwort.split("\n")
+    for zeile, abschnitt in zip(zeilen, abschnitte(zeilen)):
+        if zeile.lstrip().startswith(("#", ">")):
+            continue                                   # Überschriften und Ergänzungen per Code
         koerper = LISTENANFANG.sub("", zeile)
         for satz in saetze_teilen(koerper):
             if quellen(satz):
-                aussagen.append({"satz": satz, "quellen": quellen(satz)})
+                hinweis = abschnitt == NICHT_BEANTWORTET or bool(HINWEIS_SATZ.search(satz))
+                aussagen.append({"satz": satz, "quellen": quellen(satz), "hinweis": hinweis})
     return aussagen
 
 
 def gesamturteil(einzelurteile: list[str]) -> str:
-    """Zitiert ein Satz mehrere Urteile, zählt das beste Ergebnis (eine tragende Quelle genügt)."""
-    return max(einzelurteile, key=lambda u: STUFEN[u], default="unklar")
+    """Zitiert ein Satz mehrere Urteile, gilt er nur als gestützt, wenn ALLE ihn tragen.
+
+    Alle gleich -> dieses Ergebnis; gemischt (z. B. ja + nein) -> "teilweise".
+    """
+    if not einzelurteile:
+        return "unklar"
+    return einzelurteile[0] if len(set(einzelurteile)) == 1 else "teilweise"
+
+
+def _quellenhinweis(n: int, urteil: str, hinweis: str) -> str:
+    """Warum eine Quelle die Aussage nicht (ganz) trägt, z. B. "[3] stützt diese Aussage nicht: ..." """
+    text = {"nein": f"[{n}] stützt diese Aussage nicht", "teilweise": f"[{n}] stützt sie nur teilweise",
+            "unklar": f"[{n}] konnte nicht geprüft werden"}[urteil]
+    return f"{text}: {hinweis}" if hinweis else f"{text}."
 
 
 def pruefen(antwort: str, treffer: list[dict], fortschritt=None) -> list[dict]:
@@ -89,13 +129,16 @@ def pruefen(antwort: str, treffer: list[dict], fortschritt=None) -> list[dict]:
 
     Pro zitiertem Urteil gibt es EINEN Aufruf des LLM mit allen Sätzen, die es
     zitieren. fortschritt(nr, anzahl) wird vor jedem Aufruf aufgerufen (für die Anzeige).
-    Ergebnis: Aussagen aus aussagen_finden, ergänzt um "urteil" und "hinweise".
+    Ergebnis: Aussagen aus aussagen_finden, ergänzt um "urteil" und "hinweise"
+    (je Quelle, die die Aussage nicht trägt). Hinweis-Sätze haben das Urteil "hinweis".
     """
     aussagen = aussagen_finden(rn_klammern(antwort))
     nach_nr = {t["nr"]: t for t in treffer}
     je_quelle: dict[int, list[int]] = {}               # Urteilsnummer -> Indizes der Aussagen
     for i, aussage in enumerate(aussagen):
         aussage.update(einzel=[], hinweise=[])
+        if aussage["hinweis"]:
+            continue
         for n in aussage["quellen"]:
             if n in nach_nr:
                 je_quelle.setdefault(n, []).append(i)
@@ -109,11 +152,12 @@ def pruefen(antwort: str, treffer: list[dict], fortschritt=None) -> list[dict]:
         texte = [ZITAT.sub("", aussagen[i]["satz"]).strip() for i in indizes]
         for i, ergebnis in zip(indizes, llm.aussagen_pruefen(nach_nr[n], texte)):
             aussagen[i]["einzel"].append(ergebnis["urteil"])
-            if ergebnis["hinweis"]:
-                aussagen[i]["hinweise"].append(f"[{n}] {ergebnis['hinweis']}")
+            if ergebnis["urteil"] != "ja":
+                aussagen[i]["hinweise"].append(_quellenhinweis(n, ergebnis["urteil"], ergebnis["hinweis"]))
 
     for aussage in aussagen:
-        aussage["urteil"] = gesamturteil(aussage.pop("einzel"))
+        einzel = aussage.pop("einzel")
+        aussage["urteil"] = "hinweis" if aussage["hinweis"] else gesamturteil(einzel)
     return aussagen
 
 
@@ -198,6 +242,7 @@ def markieren(antwort: str, aussagen: list[dict]) -> str:
         "teilweise": lambda s: f":orange-background[{_maskieren(s)}] :orange[:material/help:]",
         "nein": lambda s: f":red-background[{_maskieren(s)}] :red[:material/close:]",
         "unklar": lambda s: f"{s} :gray[:material/question_mark:]",
+        "hinweis": lambda s: f"{s} :gray[:material/info:]",
     }
     zeilen = antwort.split("\n")
     z = 0                                              # Aussagen kommen in Reihenfolge der Antwort
@@ -212,8 +257,8 @@ def markieren(antwort: str, aussagen: list[dict]) -> str:
 
 
 def zusammenfassung(aussagen: list[dict]) -> dict[str, int]:
-    """Zählt die Ergebnisse: {"ja": 7, "teilweise": 2, "nein": 1, "unklar": 0}"""
-    zaehler = {stufe: 0 for stufe in STUFEN}
+    """Zählt die Ergebnisse: {"ja": 7, "teilweise": 2, "nein": 1, "unklar": 0, "hinweis": 2}"""
+    zaehler = {stufe: 0 for stufe in [*STUFEN, "hinweis"]}
     for aussage in aussagen:
         zaehler[aussage["urteil"]] += 1
     return zaehler

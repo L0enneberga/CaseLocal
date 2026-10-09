@@ -1,6 +1,6 @@
 """Tests für die Ergänzungen der KI-Antwort per Code (ohne Sprachmodell)."""
-from belege import daten_finden, metadaten_abweichungen
-from ergaenzung import abschnitte, metadaten_einsetzen, urteilskopf
+from belege import abschnitte, daten_finden, metadaten_abweichungen
+from ergaenzung import metadaten_einsetzen, urteilskopf
 
 BAG = {"nr": 1, "gericht": "Bundesarbeitsgericht", "typ": "Urteil", "datum": "2016-08-11",
        "aktenzeichen": "8 AZR 4/15", "kontext": "38\n:   Vgl. BAG 23. August 2012 - 8 AZR 285/11 - Rn. 18."}

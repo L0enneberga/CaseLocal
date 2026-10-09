@@ -12,22 +12,9 @@ import re
 import belege
 import llm
 
-# "**3. Rechtsprechung**" oder "### 3. Rechtsprechung" - nicht aber ein Listenpunkt "3. Weiter"
-ABSCHNITT = re.compile(r"^\s*(?:#{1,6}\s*\**|\*\*)\s*(\d)\.\s*[^*\n]+?\**\s*$")
 STICHPUNKT = re.compile(r"^(\s*[-*+]\s+)(.*)$")
 GEDANKENSTRICH = re.compile(r"\s+[–—-]\s+")
 TYP_KURZ = {"Urteil": "Urt. v.", "Beschluss": "Beschl. v."}
-
-
-def abschnitte(zeilen: list[str]) -> list[int]:
-    """Nummer des Abschnitts, in dem jede Zeile steht (0 = vor dem ersten Abschnitt)."""
-    aktuell, ergebnis = 0, []
-    for zeile in zeilen:
-        treffer = ABSCHNITT.match(zeile)
-        if treffer:
-            aktuell = int(treffer[1])
-        ergebnis.append(aktuell)
-    return ergebnis
 
 
 def urteilskopf(t: dict) -> str:
@@ -70,7 +57,7 @@ def metadaten_einsetzen(antwort: str, treffer: list[dict]) -> tuple[str, list[di
     """
     nach_nr = {t["nr"]: t for t in treffer}
     zeilen = antwort.split("\n")
-    for i, abschnitt in enumerate(abschnitte(zeilen)):
+    for i, abschnitt in enumerate(belege.abschnitte(zeilen)):
         punkt = STICHPUNKT.match(zeilen[i])
         if abschnitt == 3 and punkt:
             neu = _stichpunkt_mit_kopf(punkt[2], nach_nr)

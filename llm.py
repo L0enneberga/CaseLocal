@@ -64,6 +64,7 @@ Teile der Frage, zu denen das Material nichts sagt.
 
 Regeln:
 - Belege jede inhaltliche Aussage mit der Nummer des Urteils in eckigen Klammern, z. B. [2]. Verwende nur Nummern aus dem Material.
+- Zitiere zu jeder Aussage nur die Urteile, die genau diese Aussage selbst tragen – nicht alle, in denen dieselbe Norm vorkommt.
 - Nenne die wichtigsten Randnummern im Format (Rn. 15) oder (Rn. 15, 17), wenn das Material sie enthält. Erfinde keine Randnummern.
 - Trenne Einzelfall und Rechtssatz: "Im konkreten Fall entschied das Gericht ..." ist etwas anderes als "Das Gericht stellt den Grundsatz auf, dass ...". Formuliere keine allgemeinen Rechtssätze, die nicht im Material stehen.
 - Berücksichtige Instanz, Bedeutung und Datum: Entscheidungen oberster Gerichte (BVerfG, BGH, BAG, BVerwG, BSG, BFH, EuGH) vor denen der Instanzgerichte, häufig zitierte vor selten zitierten, neuere vor älteren.

@@ -170,12 +170,13 @@ def antwort_anzeigen(e: dict) -> None:
     else:
         st.markdown(absaetze(belege.markieren(e["antwort"], e["aussagen"])))
         z = belege.zusammenfassung(e["aussagen"])
-        st.caption(f"Zitatprüfung von {len(e['aussagen'])} belegten Aussagen: "
+        st.caption(f"Zitatprüfung von {len(e['aussagen']) - z['hinweis']} belegten Aussagen: "
                    f":green[:material/check:] {z['ja']} gestützt · "
                    f":orange[:material/help:] {z['teilweise']} teilweise gestützt · "
                    f":red[:material/close:] {z['nein']} nicht gestützt"
-                   + (f" · :gray[:material/question_mark:] {z['unklar']} unklar" if z["unklar"] else ""))
-    offen = [a for a in e["aussagen"] or [] if a["urteil"] != "ja"]
+                   + (f" · :gray[:material/question_mark:] {z['unklar']} unklar" if z["unklar"] else "")
+                   + (f" · :gray[:material/info:] {z['hinweis']} Hinweise nicht geprüft" if z["hinweis"] else ""))
+    offen = [a for a in e["aussagen"] or [] if a["urteil"] not in ("ja", "hinweis")]
     korrekturen = e.get("korrekturen") or []
     if offen or korrekturen:
         with st.expander(f"Hinweise der Zitatprüfung ({len(offen) + len(korrekturen)})", icon=":material/rule:"):

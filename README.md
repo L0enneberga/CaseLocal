@@ -179,12 +179,14 @@ python bewertung.py --name denken --denken-pruefung ja      # mit Denkmodus in d
 | Vorher | 10/13 | 11/13 | 6 | 93 % (114/122) | 3 | 5 | 30 s |
 | Nach Fehlerbehebung (Metadaten, strengere Zitatprüfung, Abschnitt 4 und Unionsrecht per Code) | 10/13 | 11/13 | **0** | 85 % (87/102) | 11 | 4 | 27 s |
 | Zusätzlich Denkmodus in den Prüfschritten | 10/13 | 11/13 | 0 | 61 % (60/99) | 18 | 7 | 180 s |
+| Nach Fehlerbehebung, mit Gesetzestexten im Material (ohne Denkmodus) | 10/13 | 11/13 | 0 | 84 % (95/113) | 14 | 4 | 54 s* |
 
 So sind die Zahlen zu lesen:
 
 - **Falsches Datum oder Az.:** Vorher verschrieb sich das Modell in 6 von 13 Antworten beim Datum, jedes Mal mit „20.“ als Tag (etwa 20.02.2018 statt 22.02.2018). Seit der Code den Urteilskopf aus der Datenbank einsetzt, kommt das nicht mehr vor.
 - **Weniger „gestützt“ heißt hier strenger, nicht schlechter:** Ein Satz mit mehreren Quellen gilt jetzt nur noch als gestützt, wenn alle ihn tragen. Hinweissätze werden nicht mehr mitgezählt. Die zusätzlichen „teilweise“ betreffen meist Normen-Stichpunkte, die mehr Urteile zitieren als nötig.
 - **Denkmodus:** Für einen fairen Vergleich wurden dieselben Antworten einmal mit und einmal ohne Denkmodus geprüft (109 Sätze). 77 Sätze wurden in beiden Läufen gleich bewertet. 19 blieben mit Denkmodus ohne Ergebnis, weil das Modell sich bei langen Urteilen über 14.000 Tokens festdachte und das Kontextfenster füllte. Nur 3 Sätze wurden inhaltlich strenger bewertet, davon einer zu Recht. Bei 13-facher Rechenzeit bleibt der Denkmodus deshalb aus (`config.DENKEN_PRUEFUNG`).
+- **Gesetzestexte:** Der Wortlaut im Material verschlechtert die Antworten nicht. Gestützt, nicht gestützt und Metadaten bleiben im Rahmen der Schwankung gleich. *Die Dauer ist nicht vergleichbar, weil die Grafikkarte während dieses Laufs mit einem anderen Programm geteilt war. Das zusätzliche Material umfasst nur etwa 1.500 Tokens, das Modell bleibt laut `ollama ps` zu 100 % auf der GPU.
 - **Suche:** Bei den beiden Fragen zum Urlaubsrecht landet das erwartete Leiturteil nur auf Platz 8 und 9. Davor stehen neuere Entscheidungen desselben Senats, die die Linie fortführen.
 
 Die Antworten sind nicht deterministisch, einzelne Werte schwanken zwischen zwei Läufen. Die vollständigen Antworten jedes Laufs speichert `bewertung.py` in `daten/bewertung/`.

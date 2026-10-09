@@ -24,9 +24,12 @@ Der Schwerpunkt liegt auf **nachprüfbaren Antworten**: Das Sprachmodell soll ni
 
 - **Die bedeutendsten 10.000 Urteile statt einer Zufallsstichprobe**: Über den Zitationsgraphen von Open Legal Data (rund 7,4 Millionen Zitierungen) bekommt jedes der 424.000 Urteile einen Bedeutungs-Score: Zitierungen, gewichtet nach der Instanz des zitierenden Gerichts, geteilt durch das Alter, mal einem Faktor für die eigene Instanz. Kontingente sorgen dafür, dass auch neue Grundsatzentscheidungen, Instanzgerichte und jede Gerichtsbarkeit vertreten sind (siehe [Auswahl](#auswahl-der-urteile)).
 - **Gewichten und kennzeichnen statt aussortieren**: Bedeutung und Aktualität fließen in die Rangfolge ein, die Relevanz zur Frage bleibt entscheidend. Jeder Treffer zeigt Instanz, „zitiert von N Entscheidungen“ und Jahr.
-- **Hinweis auf Rechtsprechungsänderungen**: Zitiert ein neueres Urteil gleicher oder höherer Instanz einen Treffer mit Formulierungen wie „hält nicht mehr fest“ oder „in Abkehr von“, prüft das Modell, ob dort wirklich eine Änderung der Rechtsprechung erörtert wird. Dann erscheint am Treffer ein Prüfhinweis mit der Originalstelle. Ob der Treffer die alte oder die neue Linie vertritt, entscheidet bewusst der Mensch: Im Test an 40 echten Fällen lag das Sprachmodell dabei etwa jedes zweite Mal falsch.
-- **Zitatprüfung gegen Halluzinationen**: Ein zweiter Durchgang prüft jeden Satz der Antwort gegen das Urteil, das er zitiert. Gestützte Aussagen erhalten ein Häkchen, teilweise oder nicht gestützte werden farbig markiert und begründet.
+- **Hinweis auf Rechtsprechungsänderungen**: Zitiert ein neueres Urteil gleicher oder höherer Instanz einen Treffer mit Formulierungen wie „hält nicht mehr fest“ oder „in Abkehr von“, prüft das Modell, ob dort wirklich eine Änderung der Rechtsprechung erörtert wird. Dann erscheint am Treffer ein Prüfhinweis mit der Originalstelle, und in Abschnitt 4 der Antwort setzt der Code einen festen Block: welche Entscheidung die Änderung beschreibt und welche früheren Treffer sie dabei zitiert. Ob ein Treffer die alte oder die neue Linie vertritt, entscheidet bewusst der Mensch: Im Test an 40 echten Fällen lag das Sprachmodell dabei etwa jedes zweite Mal falsch.
+- **Zitatprüfung gegen Halluzinationen**: Ein zweiter Durchgang prüft jeden Satz der Antwort gegen das Urteil, das er zitiert. Gestützte Aussagen erhalten ein Häkchen, teilweise oder nicht gestützte werden farbig markiert und begründet. Zitiert ein Satz mehrere Urteile, müssen alle ihn tragen, sonst gilt er als teilweise gestützt, und die nicht tragende Quelle wird genannt. Hinweissätze („muss am Volltext geprüft werden“, offene Punkte) werden nicht mitgezählt.
 - **Vorinstanz und Gericht auseinanderhalten**: Revisionsurteile geben oft zuerst die Begründung der Vorinstanz wieder („Das Berufungsgericht hat ausgeführt …“) und verwerfen sie danach. CaseLocal erkennt diese Passagen, kennzeichnet ihre Randnummern als „Wiedergabe der Vorinstanz“ und gibt dem Modell zusätzlich die eigene Bewertung des Gerichts mit. So wird die Meinung der Vorinstanz nicht dem Bundesgericht zugeschrieben, und die Zitatprüfung erkennt, wenn es doch passiert.
+- **Gericht, Datum und Aktenzeichen aus der Datenbank**: Das Modell verweist nur mit [n], der Code setzt die Angaben ein. Vorher verschrieb sich das Modell in 6 von 13 Testantworten beim Datum, meist mit „20.“ statt des richtigen Tages. Was trotzdem im Text auftaucht, wird mit der Datenbank abgeglichen und korrigiert.
+- **Unionsrechtliche Bezüge**: Verweist ein Urteil in den zitierten Randnummern auf eine EuGH-Vorlage („8 AZR 848/13 (A)“), eine Rechtssache („C-423/15“) oder eine Richtlinie, nennt Abschnitt 5 das ausdrücklich. Rechtssachen sind auf curia.europa.eu verlinkt. Dazu kommt der Hinweis, dass EuGH-Entscheidungen nicht im Bestand sind.
+- **Messbar statt gefühlt**: 13 Testfragen mit erwartetem Leiturteil (`tests/goldfragen.json`) laufen mit `bewertung.py` durch die ganze Kette. Gemessen werden Rang des Leiturteils, Metadatenfehler, Zitatprüfung und Dauer (siehe [Messung](#messung)).
 - **Zweistufige Analyse**: Das Modell prüft zuerst jedes gefundene Urteil einzeln (beantwortet es die Frage? was wurde im konkreten Fall entschieden? welche Randnummer?) und sortiert unpassende aus. Erst aus diesen Einzelprüfungen entsteht die Antwort.
 - **Gegliederte Antwort nach juristischer Arbeitsweise**: Kurzantwort, einschlägige Normen, Rechtsprechung mit Randnummern, abweichende Entscheidungen und was die Urteile *nicht* beantworten. Einzelfall und Rechtssatz werden getrennt, höhere Instanzen und neuere Entscheidungen zuerst.
 - **Suche entlang der Urteilsgliederung**: Urteile werden an Tenor, Tatbestand und Gründen zerlegt, Randnummern bleiben erhalten. Die Gründe zählen bei der Suche mehr als der Parteivortrag im Tatbestand. Zu jedem Treffer bekommt das Modell Leitsatz, Tenor und den Kontext rund um die Fundstelle.
@@ -46,7 +49,11 @@ Open Legal Data ──► daten_laden.py ──► SQLite (Metadaten + FTS5-Inde
 
 Frage ──► LLM: Suchbegriffe ──► hybride Suche ──► LLM: Einzelprüfung je Urteil
                                                           │
-          Streamlit ◄── Zitatprüfung je Satz ◄── LLM: gegliederte Antwort mit [Fundstellen]
+                                         LLM: gegliederte Antwort, Belege nur als [n]
+                                                          │
+          Code: Gericht/Datum/Az. aus der Datenbank, Rechtsprechungsänderungen, Unionsrecht
+                                                          │
+                          Streamlit ◄── LLM: Zitatprüfung je Satz
 ```
 
 | Datei | Aufgabe |
@@ -60,9 +67,11 @@ Frage ──► LLM: Suchbegriffe ──► hybride Suche ──► LLM: Einzelp
 | `suche.py` | Schlagwort-, semantische und hybride Suche, Filter |
 | `normen.py` | Erkennt Normzitate und verlinkt sie |
 | `llm.py` | Prompts und Aufrufe an das Sprachmodell (Einzelprüfung, Antwort, Zitatprüfung) |
-| `belege.py` | Zerlegt die Antwort in Sätze und markiert, welche Aussagen belegt sind |
-| `abweichung.py` | Sucht neuere Urteile, die von einem Treffer abweichen könnten |
+| `belege.py` | Zerlegt die Antwort in Sätze, prüft Belege und Metadaten, markiert das Ergebnis |
+| `ergaenzung.py` | Ergänzt die Antwort per Code: Urteilskopf aus der Datenbank, Block zu Rechtsprechungsänderungen, Unionsrecht |
+| `abweichung.py` | Sucht neuere Urteile, die im Zusammenhang mit einem Treffer eine Rechtsprechungsänderung erörtern |
 | `app.py` | Weboberfläche (Streamlit) |
+| `bewertung.py` | Misst die Qualität an den Testfragen in `tests/goldfragen.json` |
 | `tests/` | Automatische Tests (pytest), laufen bei jedem Push auf GitHub |
 
 ## Technik
@@ -70,6 +79,8 @@ Frage ──► LLM: Suchbegriffe ──► hybride Suche ──► LLM: Einzelp
 Python · [Ollama](https://ollama.com) · Gemma 4 12B · bge-m3 · ChromaDB · SQLite FTS5 · Streamlit
 
 Getestet auf: Windows 11, RTX 4080 Super (16 GB VRAM), 32 GB RAM.
+
+**Kein Fine-Tuning:** Das Sprachmodell ist ein unverändertes Gemma 4 12B. Die Qualität entsteht durch Prompt-Engineering und eine mehrstufige Pipeline: Das Modell übernimmt, was Sprachverständnis braucht (Relevanz prüfen, Antwort formulieren, Belege prüfen). Code übernimmt, was Code zuverlässiger kann (Metadaten, Gliederung, Rechtsprechungsänderungen, Unionsrecht).
 
 ## Schnellstart unter Windows
 
@@ -125,7 +136,31 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-Die Tests prüfen die Bausteine, die ohne Daten und ohne Ollama funktionieren: Bedeutungs-Score und Kontingente der Auswahl, Erkennen der Urteilsgliederung und Randnummern, Zerlegen in Abschnitte, FTS5-Anfragen, Filter und Rangfolge, Satzzerlegung und Markierung der Zitatprüfung, Vorauswahl für Rechtsprechungsänderungen und das Erkennen von Normzitaten.
+Die Tests prüfen die Bausteine, die ohne Daten und ohne Ollama funktionieren (die Qualität der KI-Antworten misst `bewertung.py`, siehe [Messung](#messung)): Bedeutungs-Score und Kontingente der Auswahl, Erkennen der Urteilsgliederung und Randnummern, Zerlegen in Abschnitte, FTS5-Anfragen, Filter und Rangfolge, Satzzerlegung und Markierung der Zitatprüfung, Vorauswahl für Rechtsprechungsänderungen, das Einsetzen und Korrigieren von Gericht, Datum und Aktenzeichen, der Block zu Rechtsprechungsänderungen und das Erkennen von Normzitaten und unionsrechtlichen Bezügen.
+
+## Messung
+
+13 Testfragen aus Arbeits-, Miet-, Werkvertrags-, Bank-, Sozial-, Verfassungs- und Datenschutzrecht, je mit erwartetem Leiturteil und Kernaussage (`tests/goldfragen.json`). `bewertung.py` schickt jede Frage durch die ganze Kette, so wie die App: Suche, Prüfung auf Rechtsprechungsänderungen, Einzelprüfung, Antwort, Zitatprüfung.
+
+```bash
+python bewertung.py --name nachher                          # alle Fragen
+python bewertung.py --name denken --denken-pruefung ja      # mit Denkmodus in den Prüfschritten
+```
+
+| Stand | Leiturteil unter den Top 5 | Leiturteil zitiert | Falsches Datum oder Az. | Aussagen gestützt | teilweise | nicht gestützt | Dauer je Frage |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Vorher | 10/13 | 11/13 | 6 | 93 % (114/122) | 3 | 5 | 30 s |
+| Nach Fehlerbehebung (Metadaten, strengere Zitatprüfung, Abschnitt 4 und Unionsrecht per Code) | 10/13 | 11/13 | **0** | 85 % (87/102) | 11 | 4 | 27 s |
+| Zusätzlich Denkmodus in den Prüfschritten | 10/13 | 11/13 | 0 | 61 % (60/99) | 18 | 7 | 180 s |
+
+So sind die Zahlen zu lesen:
+
+- **Falsches Datum oder Az.:** Vorher verschrieb sich das Modell in 6 von 13 Antworten beim Datum, jedes Mal mit „20.“ als Tag (etwa 20.02.2018 statt 22.02.2018). Seit der Code den Urteilskopf aus der Datenbank einsetzt, kommt das nicht mehr vor.
+- **Weniger „gestützt“ heißt hier strenger, nicht schlechter:** Ein Satz mit mehreren Quellen gilt jetzt nur noch als gestützt, wenn alle ihn tragen. Hinweissätze werden nicht mehr mitgezählt. Die zusätzlichen „teilweise“ betreffen meist Normen-Stichpunkte, die mehr Urteile zitieren als nötig.
+- **Denkmodus:** Für einen fairen Vergleich wurden dieselben Antworten einmal mit und einmal ohne Denkmodus geprüft (109 Sätze). 77 Sätze wurden in beiden Läufen gleich bewertet. 19 blieben mit Denkmodus ohne Ergebnis, weil das Modell sich bei langen Urteilen über 14.000 Tokens festdachte und das Kontextfenster füllte. Nur 3 Sätze wurden inhaltlich strenger bewertet, davon einer zu Recht. Bei 13-facher Rechenzeit bleibt der Denkmodus deshalb aus (`config.DENKEN_PRUEFUNG`).
+- **Suche:** Bei den beiden Fragen zum Urlaubsrecht landet das erwartete Leiturteil nur auf Platz 8 und 9. Davor stehen neuere Entscheidungen desselben Senats, die die Linie fortführen.
+
+Die Antworten sind nicht deterministisch, einzelne Werte schwanken zwischen zwei Läufen. Die vollständigen Antworten jedes Laufs speichert `bewertung.py` in `daten/bewertung/`.
 
 ## Datengrundlage und Dank
 
@@ -175,7 +210,7 @@ series = {JCDL '20}
 - Der Zitationsgraph enthält nur Zitierungen **innerhalb** des Open-Legal-Data-Bestands. Nicht veröffentlichte Urteile und die Literatur fehlen; der Score misst also Bedeutung in diesem Bestand, nicht die herrschende Meinung.
 - Neue Grundsatzurteile sind trotz Altersnormierung und eigenem Kontingent anfangs unterbewertet.
 - Der Hinweis auf Rechtsprechungsänderungen ist eine Heuristik: Er findet nur Änderungen in Urteilen, die selbst in der Auswahl sind, sagt nicht, welche Seite überholt ist, und ersetzt nicht die Prüfung im Kommentar.
-- Der Zitationsgraph enthält keine Zitierungen von EuGH-Urteilen. Sie können deshalb keinen Bedeutungs-Score erhalten und sind in der Auswahl nicht vertreten.
+- Der Zitationsgraph enthält keine Zitierungen von EuGH-Urteilen. Sie können deshalb keinen Bedeutungs-Score erhalten und sind in der Auswahl nicht vertreten. CaseLocal erkennt Verweise auf den EuGH, wertet dessen Entscheidungen aber nicht aus.
 - Der Datenbestand umfasst 10.000 von rund 424.000 Urteilen.
 
 **Hinweis:** Demo-Projekt, keine Rechtsberatung. KI-Zusammenfassungen können Fehler enthalten – maßgeblich ist immer der Urteilstext.

@@ -50,11 +50,11 @@ MAX_CHUNKS_PRO_URTEIL = 40    # sehr lange Urteile werden gekürzt (spart Zeit)
 EMBED_BATCH = 64              # so viele Abschnitte gehen gleichzeitig an das Embedding-Modell
 LLM_KONTEXT = 16384           # wie viel Text das LLM auf einmal "sehen" darf (in Tokens);
                               # mit "ollama ps" prüfen, ob es noch zu 100 % auf der GPU läuft
-# Denkmodus: Gemma 4 kann vor der Antwort "nachdenken". Das kostet Zeit und lohnt sich
-# nur bei Prüfaufgaben (Einzelprüfung, Zitatprüfung, Rechtsprechungsänderung), nicht
-# beim Schreiben der Antwort. Messung mit bewertung.py, Ergebnis im README.
-DENKEN_ANTWORT = False
-DENKEN_PRUEFUNG = False
+# Denkmodus: Gemma 4 kann vor der Antwort "nachdenken". Gemessen an 13 Testfragen (siehe
+# README, Abschnitt Messung): In der Zitatprüfung 13-mal langsamer, nur 3 von 109 Sätzen
+# strenger bewertet, und bei langen Urteilen denkt sich das Modell oft fest (keine Antwort).
+DENKEN_ANTWORT = False        # beim Schreiben der Antwort
+DENKEN_PRUEFUNG = False       # Einzelprüfung, Zitatprüfung, Prüfung auf Rechtsprechungsänderungen
 KI_TREFFER = 6                # so viele der besten Treffer wertet das LLM für die Antwort aus
 
 # Gewichtung der Urteilsteile bei der Bedeutungssuche (1.0 = neutral).

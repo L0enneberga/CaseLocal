@@ -214,7 +214,8 @@ def normen_pruefen(antwort: str) -> list[dict]:
 
     Status: "gefunden", "fehlt" (das Gesetz ist geladen, den Paragraphen gibt es darin nicht -
     vermutlich erfunden) oder "nicht im Bestand" (Gesetz nicht geladen, z. B. Landes- oder EU-Recht).
-    Ergebnis: [{"fund", "art", "nr", "absatz", "gesetz", "abschnitt", "status", "wortlaut"}, ...]
+    Ergebnis: [{"fund", "art", "nr", "absatz", "gesetz", "abschnitte", "status", "wortlaut"}, ...]
+    "abschnitte" sind alle Abschnitte, in denen die Norm vorkommt (z. B. [1, 2]).
     """
     zeilen = antwort.split("\n")
     gefunden: dict[str, dict] = {}
@@ -225,7 +226,9 @@ def normen_pruefen(antwort: str) -> list[dict]:
             if f["fund"] not in gefunden:
                 status = normen.norm_status(f["art"], f["nr"], f["gesetz"])
                 wortlaut = normen.nachschlagen(f["art"], f["nr"], f["gesetz"], f["absatz"]) if status == "gefunden" else None
-                gefunden[f["fund"]] = {**f, "abschnitt": abschnitt, "status": status, "wortlaut": wortlaut}
+                gefunden[f["fund"]] = {**f, "abschnitte": [], "status": status, "wortlaut": wortlaut}
+            if abschnitt not in gefunden[f["fund"]]["abschnitte"]:
+                gefunden[f["fund"]]["abschnitte"].append(abschnitt)
     return list(gefunden.values())
 
 

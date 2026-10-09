@@ -145,3 +145,10 @@ def test_zitatpruefung_bekommt_den_wortlaut(gesetze_db, monkeypatch):
     llm.aussagen_pruefen(t, ["§ 15 Abs. 2 AGG – Anspruch auf Entschädigung"])
     assert "Gesetzestexte zu den in den Aussagen genannten Normen" in gesendet["nutzer"]
     assert "(2) Wegen eines Schadens" in gesendet["nutzer"]
+
+
+def test_norm_in_mehreren_abschnitten(gesetze_db):
+    from ergaenzung import normen_pruefen
+    antwort = ("**1. Kurzantwort**\nNach § 15 Abs. 2 AGG nicht [1].\n"
+               "**2. Einschlägige Normen**\n- § 15 Abs. 2 AGG – Entschädigung [1].")
+    assert normen_pruefen(antwort)[0]["abschnitte"] == [1, 2]          # steht auch unter "Normen"

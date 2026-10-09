@@ -209,7 +209,7 @@ def antwort_anzeigen(e: dict) -> None:
     st.markdown(absaetze(bis_normen))
     im_wortlaut = {}                                   # Normen aus Abschnitt 2, jede einmal
     for n in normen_liste:
-        if n["abschnitt"] == 2 and n["wortlaut"]:
+        if 2 in n["abschnitte"] and n["wortlaut"]:
             im_wortlaut.setdefault(n["wortlaut"]["norm"], n["wortlaut"])
     for norm in im_wortlaut.values():
         wortlaut_anzeigen(norm, f"Wortlaut: {norm['norm']} – {norm['titel']}".rstrip(" –"))

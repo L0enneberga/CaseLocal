@@ -31,25 +31,22 @@ Recherche in den 10.000 bedeutendsten deutschen Gerichtsentscheidungen – mit h
 
 ## Was das Projekt kann
 
-Der Schwerpunkt liegt auf **nachprüfbaren Antworten**: Das Sprachmodell soll nicht nur zusammenfassen, sondern zeigen, worauf sich jede Aussage stützt, und kenntlich machen, wo das nicht gelingt.
+Man stellt eine Rechtsfrage in normaler Sprache und bekommt eine gegliederte Antwort, deren Aussagen sich bis zur Randnummer nachprüfen lassen. Wo das nicht gelingt, sagt CaseLocal es.
 
-- **Die bedeutendsten 10.000 Urteile statt einer Zufallsstichprobe**: Über den Zitationsgraphen von Open Legal Data (rund 7,4 Millionen Zitierungen) bekommt jedes der 424.000 Urteile einen Bedeutungs-Score: Zitierungen, gewichtet nach der Instanz des zitierenden Gerichts, geteilt durch das Alter, mal einem Faktor für die eigene Instanz. Kontingente sorgen dafür, dass auch neue Grundsatzentscheidungen, Instanzgerichte und jede Gerichtsbarkeit vertreten sind (siehe [Auswahl](#auswahl-der-urteile)).
-- **Gewichten und kennzeichnen statt aussortieren**: Bedeutung und Aktualität fließen in die Rangfolge ein, die Relevanz zur Frage bleibt entscheidend. Jeder Treffer zeigt Instanz, „zitiert von N Entscheidungen“ und Jahr.
-- **Hinweis auf Rechtsprechungsänderungen**: Zitiert ein neueres Urteil gleicher oder höherer Instanz einen Treffer mit Formulierungen wie „hält nicht mehr fest“ oder „in Abkehr von“, prüft das Modell, ob dort wirklich eine Änderung der Rechtsprechung erörtert wird. Dann erscheint am Treffer ein Prüfhinweis mit der Originalstelle, und in Abschnitt 4 der Antwort setzt der Code einen festen Block: welche Entscheidung die Änderung beschreibt und welche früheren Treffer sie dabei zitiert. Ob ein Treffer die alte oder die neue Linie vertritt, entscheidet bewusst der Mensch: Im Test an 40 echten Fällen lag das Sprachmodell dabei etwa jedes zweite Mal falsch.
-- **Zitatprüfung gegen Halluzinationen**: Ein zweiter Durchgang prüft jeden Satz der Antwort gegen das Urteil, das er zitiert. Gestützte Aussagen erhalten ein Häkchen, teilweise oder nicht gestützte werden farbig markiert und begründet. Zitiert ein Satz mehrere Urteile, müssen alle ihn tragen, sonst gilt er als teilweise gestützt, und die nicht tragende Quelle wird genannt. Hinweissätze („muss am Volltext geprüft werden“, offene Punkte) werden nicht mitgezählt.
-- **Vorinstanz und Gericht auseinanderhalten**: Revisionsurteile geben oft zuerst die Begründung der Vorinstanz wieder („Das Berufungsgericht hat ausgeführt …“) und verwerfen sie danach. CaseLocal erkennt diese Passagen, kennzeichnet ihre Randnummern als „Wiedergabe der Vorinstanz“ und gibt dem Modell zusätzlich die eigene Bewertung des Gerichts mit. So wird die Meinung der Vorinstanz nicht dem Bundesgericht zugeschrieben, und die Zitatprüfung erkennt, wenn es doch passiert.
-- **Gericht, Datum und Aktenzeichen aus der Datenbank**: Das Modell verweist nur mit [n], der Code setzt die Angaben ein. Vorher verschrieb sich das Modell in 6 von 13 Testantworten beim Datum, meist mit „20.“ statt des richtigen Tages. Was trotzdem im Text auftaucht, wird mit der Datenbank abgeglichen und korrigiert.
-- **Unionsrechtliche Bezüge**: Verweist ein Urteil in den zitierten Randnummern auf eine EuGH-Vorlage („8 AZR 848/13 (A)“), eine Rechtssache („C-423/15“) oder eine Richtlinie, nennt Abschnitt 5 das ausdrücklich. Rechtssachen sind auf curia.europa.eu verlinkt. Dazu kommt der Hinweis, dass EuGH-Entscheidungen nicht im Bestand sind.
-- **Messbar statt gefühlt**: 13 Testfragen mit erwartetem Leiturteil (`tests/goldfragen.json`) laufen mit `bewertung.py` durch die ganze Kette. Gemessen werden Rang des Leiturteils, Metadatenfehler, Zitatprüfung und Dauer (siehe [Messung](#messung)).
-- **Zweistufige Analyse**: Das Modell prüft zuerst jedes gefundene Urteil einzeln (beantwortet es die Frage? was wurde im konkreten Fall entschieden? welche Randnummer?) und sortiert unpassende aus. Erst aus diesen Einzelprüfungen entsteht die Antwort.
-- **Gegliederte Antwort nach juristischer Arbeitsweise**: Kurzantwort, einschlägige Normen, Rechtsprechung mit Randnummern, abweichende Entscheidungen und was die Urteile *nicht* beantworten. Einzelfall und Rechtssatz werden getrennt, höhere Instanzen und neuere Entscheidungen zuerst.
-- **Suche entlang der Urteilsgliederung**: Urteile werden an Tenor, Tatbestand und Gründen zerlegt, Randnummern bleiben erhalten. Die Gründe zählen bei der Suche mehr als der Parteivortrag im Tatbestand. Zu jedem Treffer bekommt das Modell Leitsatz, Tenor und den Kontext rund um die Fundstelle.
-- **Hybride Suche**: kombiniert klassische Volltextsuche (SQLite FTS5, BM25) mit semantischer Suche über Embeddings (ChromaDB), zusammengeführt per *Reciprocal Rank Fusion*.
-- **KI-Schlagworte**: ein lokales Sprachmodell übersetzt Fragen in juristische Suchbegriffe und verschlagwortet Urteile automatisch.
-- **Antworten mit Fundstellen (RAG)**: das Modell antwortet nur auf Grundlage der gefundenen Urteile und zitiert sie mit Nummer und Aktenzeichen.
-- **Filter**: Suche auf Gerichtsbarkeiten und einen Zeitraum eingrenzen.
-- **Gesetzestexte im Wortlaut**: Die 100 in den Urteilen meistzitierten Bundesgesetze liegen mit Wortlaut und Stand lokal vor (siehe [Gesetzestexte](#gesetzestexte)). Unter „Einschlägige Normen“ lässt sich jede Norm aufklappen. Das Modell bekommt den Wortlaut der wichtigsten Normen mit, darf aber nur Urteilen eine Auslegung entnehmen. Erfundene Paragraphen („§ 999 AGG“) werden rot markiert. Passt keine Rechtsprechung, schlägt eine Normsuche mögliche Normen vor, ohne KI-Einschätzung.
-- **Normen verlinken**: Zitate wie „§ 573 Abs. 2 BGB“ oder „Art. 3 GG“ werden erkannt und auf gesetze-im-internet.de verlinkt. Jede Trefferkarte zeigt die Normen, die das Urteil am häufigsten zitiert.
+**Recherche**
+- **Die 10.000 bedeutendsten Urteile** aus rund 424.000, ausgewählt über den Zitationsgraphen von Open Legal Data ([Auswahl](#auswahl-der-urteile))
+- **Hybride Suche** aus Volltext und Bedeutung, entlang der Urteilsgliederung: Die Gründe zählen mehr als der Parteivortrag
+- **Gesetzestexte im Wortlaut** für die 100 meistzitierten Bundesgesetze, mit Stand ([Gesetzestexte](#gesetzestexte))
+
+**Antwort**
+- **Gegliedert nach juristischer Arbeitsweise:** Kurzantwort, Normen, Rechtsprechung mit Randnummern, abweichende Entscheidungen, offene Punkte
+- **Erst prüfen, dann schreiben:** Das Modell prüft jedes Urteil einzeln und sortiert unpassende aus
+- **Vorinstanz ist nicht Gericht:** Gibt ein Revisionsurteil die Ansicht der Vorinstanz wieder, wird sie nicht dem BGH oder BAG zugeschrieben
+
+**Kontrolle**
+- **Zitatprüfung:** Jeder Satz wird gegen das zitierte Urteil geprüft und als gestützt, teilweise oder nicht gestützt markiert
+- **Was Code zuverlässiger kann, macht Code:** Gericht, Datum und Aktenzeichen kommen aus der Datenbank, erfundene Paragraphen werden markiert, EuGH-Bezüge erkannt. Bei Rechtsprechungsänderungen zeigt CaseLocal die Originalstelle, entscheidet aber bewusst nicht, welche Linie gilt.
+- **Gemessen statt behauptet:** 13 Testfragen mit erwartetem Leiturteil. Falsche Daten: 0 statt vorher 6, gestützte Aussagen: 88 % ([Messung](#messung))
 
 ## Architektur
 

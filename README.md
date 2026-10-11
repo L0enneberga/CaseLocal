@@ -1,4 +1,6 @@
-# CaseLocal – lokale KI-Recherche in deutscher Rechtsprechung
+# CaseLocal
+
+**KI-Recherche in deutscher Rechtsprechung, nachprüfbar bis zur Randnummer**
 
 [![Tests](https://github.com/L0enneberga/CaseLocal/actions/workflows/tests.yml/badge.svg)](https://github.com/L0enneberga/CaseLocal/actions/workflows/tests.yml)
 

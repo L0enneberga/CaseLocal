@@ -1,28 +1,27 @@
-# CaseLocal - lokale KI-Recherche in deutscher Rechtsprechung
+# CaseLocal – lokale KI-Recherche in deutscher Rechtsprechung
 
 [![Tests](https://github.com/L0enneberga/CaseLocal/actions/workflows/tests.yml/badge.svg)](https://github.com/L0enneberga/CaseLocal/actions/workflows/tests.yml)
 
-Recherche in den 10.000 bedeutendsten deutschen Gerichtsentscheidungen – mit hybrider Suche, gegliederter KI-Antwort, dem Wortlaut der einschlägigen Gesetze und einer Zitatprüfung, die nicht belegte Aussagen sichtbar macht. **Alles läuft lokal**: Kein Text verlässt den Rechner, und es entstehen keine API-Kosten.
+Recherche in den 10.000 bedeutendsten deutschen Gerichtsentscheidungen – mit hybrider Suche, gegliederter KI-Antwort, dem Wortlaut der einschlägigen Gesetze und einer Zitatprüfung, die nicht belegte Aussagen sichtbar macht. **Alles läuft lokal**: Kein Text verlässt den Rechner und es entstehen keine API-Kosten.
 
 > **Datengrundlage:** CaseLocal nutzt den Urteilsdatensatz von [Open Legal Data](https://openlegaldata.io) (Ostendorff, Blume & Ostendorff, 2020). Das Sammeln, Aufbereiten und offene Bereitstellen von über 400.000 Gerichtsentscheidungen ist ihre Arbeit, nicht meine. Herzlichen Dank dafür! Details und Zitat: [Datengrundlage und Dank](#datengrundlage-und-dank).
 
+<p>
+  <a href="docs/screenshot1.png"><img src="docs/screenshot1.png" alt="Frage mit aufgeklappten Einstellungen, Kurzantwort und Zitatprüfung"></a><br>
+  <sub><b>Recherche:</b> Frage stellen; die Einstellungen sind unter dem Suchfeld eingeklappt (hier aufgeklappt). Darunter die Kurzantwort und daneben die Bilanz der Zitatprüfung.</sub>
+</p>
+
 <table>
   <tr>
-    <td width="50%" valign="top">
-      <a href="docs/screenshot1.png"><img src="docs/screenshot1.png" alt="Frage mit aufgeklappten Einstellungen, Kurzantwort und Zitatprüfung"></a><br>
-      <sub><b>Recherche:</b> Frage stellen; die Einstellungen sind unter dem Suchfeld eingeklappt (hier aufgeklappt). Darunter die Kurzantwort und daneben die Bilanz der Zitatprüfung.</sub>
-    </td>
-    <td width="50%" valign="top">
+    <td width="33%" valign="top">
       <a href="docs/screenshot2.png"><img src="docs/screenshot2.png" alt="Gegliederte Antwort mit Normen im Wortlaut und Fundstellen"></a><br>
       <sub><b>Gegliederte Antwort:</b> Jede belegte Aussage ist geprüft. Normen lassen sich im Wortlaut aufklappen, rechts stehen die zitierten Urteile mit Randnummern.</sub>
     </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
+    <td width="33%" valign="top">
       <a href="docs/screenshot3.png"><img src="docs/screenshot3.png" alt="Ablauf der Recherche mit Einzelprüfung jedes Urteils"></a><br>
       <sub><b>Einzelprüfung:</b> Laufzeit jedes Schritts, die Suchbegriffe und die Prüfung jedes gefundenen Urteils. Unpassende Urteile werden aussortiert.</sub>
     </td>
-    <td width="50%" valign="top">
+    <td width="33%" valign="top">
       <a href="docs/screenshot4.png"><img src="docs/screenshot4.png" alt="Urteil im Detail mit zitierten Normen und Fundstelle, dunkles Thema"></a><br>
       <sub><b>Urteil im Detail</b> (dunkles Thema): Instanz, Zitierhäufigkeit, Tenor, die meistzitierten Normen des Urteils und die Fundstelle mit Randnummer.</sub>
     </td>
@@ -120,7 +119,7 @@ hf auth login                    # Hugging-Face-Token eingeben
 
 ```bash
 python daten_laden.py            # 1. die 10.000 bedeutendsten Urteile auswählen und laden (ca. 3 GB)
-python index_bauen.py            # 2. Suchindex bauen (ca. 2-3 Stunden, kann unterbrochen werden)
+python index_bauen.py            # 2. Suchindex bauen (ca. 2–3 Stunden, kann unterbrochen werden)
 python gesetze_laden.py          # 3. die 100 meistzitierten Bundesgesetze laden (ca. 15 Minuten)
 python schlagworte.py --anzahl 100   # 4. optional: KI-Schlagworte
 streamlit run app.py             # 5. App starten -> http://localhost:8501

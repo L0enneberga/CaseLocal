@@ -32,7 +32,7 @@ Recherche in den 10.000 bedeutendsten deutschen Gerichtsentscheidungen mit hybri
 
 ## Was das Projekt kann
 
-Man stellt eine Rechtsfrage in normaler Sprache und bekommt eine gegliederte Antwort, deren Aussagen sich bis zur Randnummer nachprüfen lassen. Wo das nicht gelingt, sagt CaseLocal es.
+Man stellt eine Rechtsfrage oder gibt Schlagworte ein und bekommt eine gegliederte Antwort, deren Aussagen sich bis zur Randnummer nachprüfen lassen. Wo das nicht gelingt, sagt CaseLocal es.
 
 **Recherche**
 - **Die 10.000 bedeutendsten Urteile** aus rund 424.000, ausgewählt über den Zitationsgraphen von Open Legal Data ([Auswahl](#auswahl-der-urteile))

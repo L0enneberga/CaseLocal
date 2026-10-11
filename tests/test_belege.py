@@ -66,9 +66,9 @@ def test_markieren():
     for aussage, urteil in zip(aussagen, ["ja", "nein", "teilweise"]):
         aussage["urteil"] = urteil
     assert markieren(antwort, aussagen) == (
-        "Satz eins [1]. :green[:material/check:] "
-        ":red-background[Satz zwei \\[2\\].] :red[:material/close:]\n"
-        "- :orange-background[Satz drei \\[1\\].] :orange[:material/help:]")
+        "Satz eins [1]. :green[:material/check_circle:] "
+        ":red-background[Satz zwei \\[2\\].] :red[:material/cancel:]\n"
+        "- :orange-background[Satz drei \\[1\\].] :orange[:material/contrast:]")
     assert zusammenfassung(aussagen) == {"ja": 1, "teilweise": 1, "nein": 1, "unklar": 0, "hinweis": 0}
 
 

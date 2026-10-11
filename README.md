@@ -9,22 +9,22 @@ Recherche in den 10.000 bedeutendsten deutschen Gerichtsentscheidungen – mit h
 <table>
   <tr>
     <td width="50%" valign="top">
-      <a href="docs/screenshot1.png"><img src="docs/screenshot1.png" alt="Gegliederte KI-Antwort mit Normen im Wortlaut"></a><br>
-      <sub><b>Gegliederte Antwort:</b> Gericht, Datum und Aktenzeichen aus der Datenbank, jede belegte Aussage geprüft (✓). Unter „Einschlägige Normen“ lässt sich der Wortlaut aufklappen.</sub>
+      <a href="docs/screenshot1.png"><img src="docs/screenshot1.png" alt="Frage mit aufgeklappten Einstellungen, Kurzantwort und Zitatprüfung"></a><br>
+      <sub><b>Recherche:</b> Frage stellen; die Einstellungen sind unter dem Suchfeld eingeklappt (hier aufgeklappt). Darunter die Kurzantwort und daneben die Bilanz der Zitatprüfung.</sub>
     </td>
     <td width="50%" valign="top">
-      <a href="docs/screenshot2.png"><img src="docs/screenshot2.png" alt="Einzelprüfung jedes gefundenen Urteils"></a><br>
-      <sub><b>Einzelprüfung:</b> Das Modell prüft jedes Urteil einzeln. Was hat das Gericht entschieden, in welcher Randnummer? Unpassende Urteile werden aussortiert.</sub>
+      <a href="docs/screenshot2.png"><img src="docs/screenshot2.png" alt="Gegliederte Antwort mit Normen im Wortlaut und Fundstellen"></a><br>
+      <sub><b>Gegliederte Antwort:</b> Jede belegte Aussage ist geprüft. Normen lassen sich im Wortlaut aufklappen, rechts stehen die zitierten Urteile mit Randnummern.</sub>
     </td>
   </tr>
   <tr>
     <td width="50%" valign="top">
-      <a href="docs/screenshot3.png"><img src="docs/screenshot3.png" alt="Rechtsprechungsänderung, Unionsrecht und Zitatprüfung"></a><br>
-      <sub><b>Per Code ergänzt:</b> Rechtsprechungsänderung (ändernde und dort zitierte Entscheidung), Verweis auf die EuGH-Vorlage und die Bilanz der Zitatprüfung.</sub>
+      <a href="docs/screenshot3.png"><img src="docs/screenshot3.png" alt="Ablauf der Recherche mit Einzelprüfung jedes Urteils"></a><br>
+      <sub><b>Einzelprüfung:</b> Laufzeit jedes Schritts, die Suchbegriffe und die Prüfung jedes gefundenen Urteils. Unpassende Urteile werden aussortiert.</sub>
     </td>
     <td width="50%" valign="top">
-      <a href="docs/screenshot4.png"><img src="docs/screenshot4.png" alt="Trefferkarte mit zitierten Normen und Fundstelle"></a><br>
-      <sub><b>Trefferkarte:</b> Instanz, Zitierhäufigkeit, Tenor, die meistzitierten Normen des Urteils und die Fundstelle mit Randnummern und verlinkten Normen.</sub>
+      <a href="docs/screenshot4.png"><img src="docs/screenshot4.png" alt="Urteil im Detail mit zitierten Normen und Fundstelle, dunkles Thema"></a><br>
+      <sub><b>Urteil im Detail</b> (dunkles Thema): Instanz, Zitierhäufigkeit, Tenor, die meistzitierten Normen des Urteils und die Fundstelle mit Randnummer.</sub>
     </td>
   </tr>
 </table>

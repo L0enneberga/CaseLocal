@@ -245,12 +245,12 @@ def _maskieren(satz: str) -> str:
 def markieren(antwort: str, aussagen: list[dict]) -> str:
     """Setzt die Prüfergebnisse als Streamlit-Markdown in die Antwort ein.
 
-    gestützt: grünes Häkchen · teilweise: orange hinterlegt · nicht gestützt: rot hinterlegt
+    gestützt: voller Kreis · teilweise: halber Kreis, orange hinterlegt · nicht gestützt: rot hinterlegt
     """
     zeichen = {
-        "ja": lambda s: f"{s} :green[:material/check:]",
-        "teilweise": lambda s: f":orange-background[{_maskieren(s)}] :orange[:material/help:]",
-        "nein": lambda s: f":red-background[{_maskieren(s)}] :red[:material/close:]",
+        "ja": lambda s: f"{s} :green[:material/check_circle:]",
+        "teilweise": lambda s: f":orange-background[{_maskieren(s)}] :orange[:material/contrast:]",
+        "nein": lambda s: f":red-background[{_maskieren(s)}] :red[:material/cancel:]",
         "unklar": lambda s: f"{s} :gray[:material/question_mark:]",
         "hinweis": lambda s: f"{s} :gray[:material/info:]",
     }

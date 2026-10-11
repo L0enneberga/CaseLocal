@@ -1,0 +1,82 @@
+# Erscheinungsbild von CaseLocal (siehe DESIGN.md, Variante Lapis).
+# Schriften liegen in static/fonts, damit auch dafür nichts aus dem Netz geladen wird.
+
+[server]
+enableStaticServing = true
+
+[client]
+toolbarMode = "minimal"
+
+[theme]
+font = "SourceSans, Segoe UI, sans-serif"
+headingFont = "SourceSerif, Georgia, serif"
+headingFontWeights = 600
+headingFontSizes = ["2rem", "1.45rem", "1.2rem", "1.15rem", "1rem", "0.875rem"]
+baseFontSize = 15
+baseRadius = "6px"
+buttonRadius = "7px"
+showWidgetBorder = true
+linkUnderline = true
+
+[[theme.fontFaces]]
+family = "SourceSans"
+url = "app/static/fonts/SourceSans3.woff2"
+weight = "400 700"
+
+[[theme.fontFaces]]
+family = "SourceSerif"
+url = "app/static/fonts/SourceSerif4.woff2"
+weight = "400 600"
+
+[[theme.fontFaces]]
+family = "SourceSerif"
+url = "app/static/fonts/SourceSerif4-Italic.woff2"
+weight = "400 600"
+style = "italic"
+
+# Blau-Hinterlegung (st.info, Urteilsauszüge) bleibt neutral: Lapis nur für kleine Teile.
+[theme.light]
+primaryColor = "#1A3AF0"
+backgroundColor = "#F7F6F2"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#151829"
+borderColor = "#D6D4CB"
+linkColor = "#1A3AF0"
+blueColor = "#1A3AF0"
+greenColor = "#1C7448"
+orangeColor = "#9A5B00"
+redColor = "#B42318"
+grayColor = "#62667A"
+greenBackgroundColor = "#E5F1EA"
+orangeBackgroundColor = "#FBEFD9"
+redBackgroundColor = "#FBE7E4"
+blueBackgroundColor = "#EFEEE8"
+grayBackgroundColor = "#EFEEE8"
+greenTextColor = "#1C7448"
+orangeTextColor = "#8A5100"
+redTextColor = "#B42318"
+blueTextColor = "#2A2E40"
+grayTextColor = "#5A5E72"
+
+[theme.dark]
+primaryColor = "#3D5FFF"
+backgroundColor = "#121211"
+secondaryBackgroundColor = "#1A1A18"
+textColor = "#ECEAE4"
+borderColor = "#34332F"
+linkColor = "#8099FF"
+blueColor = "#8099FF"
+greenColor = "#52C48E"
+orangeColor = "#E2A541"
+redColor = "#F26B5B"
+grayColor = "#97948C"
+greenBackgroundColor = "#17301F"
+orangeBackgroundColor = "#33260F"
+redBackgroundColor = "#3A1915"
+blueBackgroundColor = "#1F1F1C"
+grayBackgroundColor = "#22221F"
+greenTextColor = "#6FD3A2"
+orangeTextColor = "#EDB55A"
+redTextColor = "#F58577"
+blueTextColor = "#DDDAD3"
+grayTextColor = "#A8A59D"

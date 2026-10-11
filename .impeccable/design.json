@@ -1,0 +1,550 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-11T09:39:19+00:00",
+  "title": "Design System: CaseLocal",
+  "extensions": {
+    "colorMeta": {
+      "paper": {
+        "role": "neutral",
+        "displayName": "Cool Paper",
+        "canonical": "#F7F8FA",
+        "dark": "#11131A",
+        "oklch": "oklch(97.9% 0.003 264.5)",
+        "tonalRamp": [
+          "#0B0B0C",
+          "#232425",
+          "#424244",
+          "#626365",
+          "#858688",
+          "#AAABAD",
+          "#CDCED0",
+          "#EDEEF0"
+        ]
+      },
+      "rail": {
+        "role": "neutral",
+        "displayName": "Rail Grey",
+        "canonical": "#EEEFF4",
+        "dark": "#171A23",
+        "oklch": "oklch(95.3% 0.007 277.2)",
+        "tonalRamp": [
+          "#0A0B0E",
+          "#232427",
+          "#414246",
+          "#626367",
+          "#85868A",
+          "#A9AAAF",
+          "#CCCDD2",
+          "#EDEEF3"
+        ]
+      },
+      "sheet": {
+        "role": "neutral",
+        "displayName": "Sheet White",
+        "canonical": "#FFFFFF",
+        "dark": "#151821",
+        "oklch": "oklch(100.0% 0.000 89.9)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#242424",
+          "#424242",
+          "#636363",
+          "#868686",
+          "#ABABAB",
+          "#CECECE",
+          "#EEEEEE"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Blue-Black Ink",
+        "canonical": "#161A2B",
+        "dark": "#E6E7ED",
+        "oklch": "oklch(22.3% 0.034 273.3)",
+        "tonalRamp": [
+          "#070A19",
+          "#1F2335",
+          "#3C4155",
+          "#5D6277",
+          "#7F859B",
+          "#A3AAC1",
+          "#C6CDE5",
+          "#E7EEFF"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Ink Secondary",
+        "canonical": "#464B5F",
+        "dark": "#B4B7C5",
+        "oklch": "oklch(41.6% 0.034 273.9)",
+        "tonalRamp": [
+          "#070A19",
+          "#1F2335",
+          "#3C4155",
+          "#5D6277",
+          "#7F859B",
+          "#A4AAC1",
+          "#C6CDE5",
+          "#E7EDFF"
+        ]
+      },
+      "ink-3": {
+        "role": "neutral",
+        "displayName": "Ink Tertiary",
+        "canonical": "#62677D",
+        "dark": "#8F93A6",
+        "oklch": "oklch(51.8% 0.035 275.1)",
+        "tonalRamp": [
+          "#07091A",
+          "#1F2335",
+          "#3D4155",
+          "#5D6278",
+          "#80859C",
+          "#A4AAC2",
+          "#C7CCE5",
+          "#E7EDFF"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#DADCE4",
+        "dark": "#272B37",
+        "oklch": "oklch(89.5% 0.011 274.9)",
+        "tonalRamp": [
+          "#0A0B10",
+          "#22242A",
+          "#404248",
+          "#61636A",
+          "#84868D",
+          "#A8AAB2",
+          "#CBCDD5",
+          "#ECEEF6"
+        ]
+      },
+      "rule-2": {
+        "role": "neutral",
+        "displayName": "Hairline Strong",
+        "canonical": "#C4C7D2",
+        "dark": "#363B4A",
+        "oklch": "oklch(83.1% 0.016 273.8)",
+        "tonalRamp": [
+          "#090B12",
+          "#21242C",
+          "#40424B",
+          "#60636C",
+          "#838690",
+          "#A7AAB5",
+          "#CACDD8",
+          "#EBEEF9"
+        ]
+      },
+      "violet": {
+        "role": "primary",
+        "displayName": "Stempelviolett",
+        "canonical": "#5636B0",
+        "dark": "#A996F2",
+        "oklch": "oklch(44.6% 0.182 288.8)",
+        "tonalRamp": [
+          "#100039",
+          "#261059",
+          "#42337D",
+          "#6255A3",
+          "#8479CA",
+          "#A89EF2",
+          "#CBC1FF",
+          "#EBE2FF"
+        ]
+      },
+      "violet-ink": {
+        "role": "primary",
+        "displayName": "Stempel Ink",
+        "canonical": "#FFFFFF",
+        "dark": "#14111F",
+        "oklch": "oklch(100.0% 0.000 89.9)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#242424",
+          "#424242",
+          "#636363",
+          "#868686",
+          "#ABABAB",
+          "#CECECE",
+          "#EEEEEE"
+        ]
+      },
+      "violet-wash": {
+        "role": "primary",
+        "displayName": "Stempel Wash",
+        "canonical": "#ECE8F8",
+        "dark": "#241D42",
+        "oklch": "oklch(93.9% 0.022 297.4)",
+        "tonalRamp": [
+          "#0C0913",
+          "#25222D",
+          "#43404D",
+          "#64616E",
+          "#878492",
+          "#ACA8B7",
+          "#CFCBDB",
+          "#F0ECFC"
+        ]
+      },
+      "violet-line": {
+        "role": "primary",
+        "displayName": "Stempel Line",
+        "canonical": "#C9BEEC",
+        "dark": "#4B3C86",
+        "oklch": "oklch(82.6% 0.065 295.9)",
+        "tonalRamp": [
+          "#0F0323",
+          "#271C3F",
+          "#453B61",
+          "#665C84",
+          "#897EA9",
+          "#AEA3D0",
+          "#D1C6F4",
+          "#F2E6FF"
+        ]
+      },
+      "ok": {
+        "role": "status",
+        "displayName": "Gestützt Green",
+        "canonical": "#1C7448",
+        "dark": "#52C48E",
+        "oklch": "oklch(49.7% 0.108 156.4)",
+        "tonalRamp": [
+          "#001500",
+          "#00310A",
+          "#005229",
+          "#1D7549",
+          "#47996B",
+          "#6EBF8F",
+          "#91E3B1",
+          "#B1FFD1"
+        ]
+      },
+      "part": {
+        "role": "status",
+        "displayName": "Teilweise Amber",
+        "canonical": "#9A5B00",
+        "dark": "#E2A541",
+        "oklch": "oklch(53.1% 0.119 65.1)",
+        "tonalRamp": [
+          "#270000",
+          "#470C00",
+          "#6B3000",
+          "#905200",
+          "#B7752C",
+          "#DE9A54",
+          "#FFBD77",
+          "#FFDE97"
+        ]
+      },
+      "no": {
+        "role": "status",
+        "displayName": "Nicht-gestützt Red",
+        "canonical": "#B42318",
+        "dark": "#F26B5B",
+        "oklch": "oklch(50.0% 0.182 29.5)",
+        "tonalRamp": [
+          "#2D0000",
+          "#4F0000",
+          "#752018",
+          "#9C4439",
+          "#C4685A",
+          "#ED8D7E",
+          "#FFAFA0",
+          "#FFD0BF"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "wordmark": {
+        "displayName": "Wordmark",
+        "purpose": "The CaseLocal mark only; 'Local' in violet."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "The Antwort heading, one per screen, closed by a double ink rule."
+      },
+      "question": {
+        "displayName": "Question",
+        "purpose": "The user's question inside the question field."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Numbered answer section headings."
+      },
+      "reading": {
+        "displayName": "Reading",
+        "purpose": "Every statement in the answer; max 66ch; 16.5px below 640px."
+      },
+      "quote": {
+        "displayName": "Quote",
+        "purpose": "Wortlaut panels of quoted law."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "UI base size."
+      },
+      "control": {
+        "displayName": "Control",
+        "purpose": "Switches, fields, source case lines."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Rail and column headings, field labels, stage names, [n] refs, section numbers."
+      },
+      "meta": {
+        "displayName": "Meta",
+        "purpose": "Durations, legends, citation counts, credits, footers."
+      },
+      "figures": {
+        "displayName": "Figures",
+        "purpose": "Tabular lining figures for Az., Rn., dates, durations and counts."
+      }
+    },
+    "themes": {
+      "default": "light",
+      "darkTrigger": "prefers-color-scheme: dark (unless data-theme=\"light\"), or data-theme=\"dark\""
+    },
+    "shadows": [],
+    "rules": [
+      {
+        "name": "hairline",
+        "value": "1px solid var(--rule)",
+        "purpose": "Row separators and region borders."
+      },
+      {
+        "name": "structure",
+        "value": "1px solid var(--ink)",
+        "purpose": "Bounds the pipeline ledger and the Zitatprüfung tally."
+      },
+      {
+        "name": "record-head",
+        "value": "3px double var(--ink)",
+        "purpose": "Closes the Antwort header; once per screen."
+      },
+      {
+        "name": "violet-line",
+        "value": "1px solid var(--violet-line)",
+        "purpose": "Lit Beleg column; left rule of quoted original passages."
+      }
+    ],
+    "focus": {
+      "value": "outline: 2px solid var(--violet); outline-offset: 2px; border-radius: 3px",
+      "purpose": "All keyboard focus; claim rows use offset -2px."
+    },
+    "motion": [
+      {
+        "name": "ease",
+        "value": "cubic-bezier(.16,1,.3,1)",
+        "purpose": "House ease for every state transition."
+      },
+      {
+        "name": "duration-press",
+        "value": "150ms",
+        "purpose": "Primary button brightness."
+      },
+      {
+        "name": "duration-state",
+        "value": "200ms",
+        "purpose": "Switches, field border, disclosure chevron, source lit."
+      },
+      {
+        "name": "duration-spotlight",
+        "value": "250ms",
+        "purpose": "Statement and source dim and light."
+      },
+      {
+        "name": "duration-busy",
+        "value": "300ms",
+        "purpose": "Result fades to 0.35 opacity with a 1.5px blur while the pipeline replays."
+      },
+      {
+        "name": "pulse",
+        "value": "1s infinite; scale .55 and opacity .5 at 50%",
+        "purpose": "Running pipeline stage dot."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "all transitions and animations off",
+        "purpose": "prefers-reduced-motion: reduce."
+      }
+    ],
+    "opacity": [
+      {
+        "name": "dim",
+        "value": "0.32 light / 0.28 dark",
+        "purpose": "Unfocused statements during the spotlight."
+      },
+      {
+        "name": "dim-source",
+        "value": "0.45",
+        "purpose": "Unrelated sources during the spotlight."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "stack-sources",
+        "value": "1180px"
+      },
+      {
+        "name": "collapse-rail",
+        "value": "880px"
+      },
+      {
+        "name": "fold-beleg",
+        "value": "640px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single solid action (Recherchieren).",
+      "html": "<button class=\"ds-go\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"7\" cy=\"7\" r=\"4.5\"/><path d=\"m10.4 10.4 3.4 3.4\"/></svg>Recherchieren</button>",
+      "css": ":host{--paper:#F7F8FA;--rail:#EEEFF4;--sheet:#FFFFFF;--ink:#161A2B;--ink-2:#464B5F;--ink-3:#62677D;--rule:#DADCE4;--rule-2:#C4C7D2;--violet:#5636B0;--violet-ink:#FFFFFF;--violet-wash:#ECE8F8;--violet-line:#C9BEEC;--ok:#1C7448;--part:#9A5B00;--no:#B42318;--f-ui:\"Source Sans 3\",\"Segoe UI\",system-ui,sans-serif;--f-read:\"Source Serif 4\",Georgia,serif;--ease:cubic-bezier(.16,1,.3,1)} .ds-go{display:inline-flex;align-items:center;gap:8px;border:0;background:var(--violet);color:var(--violet-ink);border-radius:6px;padding:9px 16px;font:600 14.5px/1.4 var(--f-ui);cursor:pointer;transition:filter .15s} .ds-go:hover{filter:brightness(1.08)} .ds-go:focus-visible{outline:2px solid var(--violet);outline-offset:2px} .ds-go:disabled{opacity:.6;cursor:progress}"
+    },
+    {
+      "name": "Question Field",
+      "kind": "input",
+      "refersTo": "input-question",
+      "description": "Serif question textarea with the action inside the field.",
+      "html": "<div class=\"ds-ask\"><textarea rows=\"2\">Muss eine Bewerbung subjektiv ernsthaft sein?</textarea><button class=\"ds-ask-go\">Recherchieren</button></div>",
+      "css": ":host{--paper:#F7F8FA;--rail:#EEEFF4;--sheet:#FFFFFF;--ink:#161A2B;--ink-2:#464B5F;--ink-3:#62677D;--rule:#DADCE4;--rule-2:#C4C7D2;--violet:#5636B0;--violet-ink:#FFFFFF;--violet-wash:#ECE8F8;--violet-line:#C9BEEC;--ok:#1C7448;--part:#9A5B00;--no:#B42318;--f-ui:\"Source Sans 3\",\"Segoe UI\",system-ui,sans-serif;--f-read:\"Source Serif 4\",Georgia,serif;--ease:cubic-bezier(.16,1,.3,1)} .ds-ask{display:flex;gap:12px;border:1px solid var(--rule-2);background:var(--sheet);border-radius:8px;padding:8px 8px 8px 16px;transition:border-color .2s} .ds-ask:focus-within{border-color:var(--violet)} .ds-ask textarea{flex:1;border:0;background:none;resize:none;outline:none;font:400 19px/1.45 var(--f-read);color:var(--ink);padding:6px 0} .ds-ask-go{align-self:flex-end;border:0;background:var(--violet);color:var(--violet-ink);border-radius:6px;padding:9px 16px;font:600 14.5px var(--f-ui);cursor:pointer} .ds-ask-go:hover{filter:brightness(1.08)} .ds-ask-go:focus-visible{outline:2px solid var(--violet);outline-offset:2px}"
+    },
+    {
+      "name": "Filter Chips",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Multi-select filters; pressed fills violet.",
+      "html": "<div class=\"ds-chips\"><button class=\"ds-chip\" aria-pressed=\"false\">Ordentliche</button><button class=\"ds-chip\" aria-pressed=\"true\">Arbeit</button><button class=\"ds-chip\" aria-pressed=\"false\">Verwaltung</button></div>",
+      "css": ":host{--paper:#F7F8FA;--rail:#EEEFF4;--sheet:#FFFFFF;--ink:#161A2B;--ink-2:#464B5F;--ink-3:#62677D;--rule:#DADCE4;--rule-2:#C4C7D2;--violet:#5636B0;--violet-ink:#FFFFFF;--violet-wash:#ECE8F8;--violet-line:#C9BEEC;--ok:#1C7448;--part:#9A5B00;--no:#B42318;--f-ui:\"Source Sans 3\",\"Segoe UI\",system-ui,sans-serif;--f-read:\"Source Serif 4\",Georgia,serif;--ease:cubic-bezier(.16,1,.3,1)} .ds-chips{display:flex;gap:6px;flex-wrap:wrap} .ds-chip{border:1px solid var(--rule-2);background:var(--sheet);border-radius:3px;padding:3px 10px;font:400 13px var(--f-ui);color:var(--ink-2);cursor:pointer} .ds-chip:focus-visible{outline:2px solid var(--violet);outline-offset:2px} .ds-chip[aria-pressed=true]{background:var(--violet);border-color:var(--violet);color:var(--violet-ink)}"
+    },
+    {
+      "name": "Switch",
+      "kind": "custom",
+      "refersTo": "switch-track",
+      "description": "Full-width setting row with optional subline.",
+      "html": "<button class=\"ds-sw\" role=\"switch\" aria-checked=\"true\"><span>Zitatprüfung<small>Jede Aussage gegen ihre Quelle</small></span><span class=\"ds-t\"></span></button>",
+      "css": ":host{--paper:#F7F8FA;--rail:#EEEFF4;--sheet:#FFFFFF;--ink:#161A2B;--ink-2:#464B5F;--ink-3:#62677D;--rule:#DADCE4;--rule-2:#C4C7D2;--violet:#5636B0;--violet-ink:#FFFFFF;--violet-wash:#ECE8F8;--violet-line:#C9BEEC;--ok:#1C7448;--part:#9A5B00;--no:#B42318;--f-ui:\"Source Sans 3\",\"Segoe UI\",system-ui,sans-serif;--f-read:\"Source Serif 4\",Georgia,serif;--ease:cubic-bezier(.16,1,.3,1)} .ds-sw{display:flex;justify-content:space-between;gap:12px;width:260px;background:none;border:0;padding:3px 0;text-align:left;font:400 14px/1.35 var(--f-ui);color:var(--ink);cursor:pointer} .ds-sw small{display:block;color:var(--ink-3);font-size:12.5px;margin-top:2px} .ds-t{flex:none;width:30px;height:18px;border-radius:9px;background:var(--rule-2);position:relative;transition:background .2s var(--ease)} .ds-t::after{content:\"\";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--sheet);transition:transform .2s var(--ease)} .ds-sw[aria-checked=true] .ds-t{background:var(--violet)} .ds-sw[aria-checked=true] .ds-t::after{transform:translateX(12px)} .ds-sw:focus-visible{outline:2px solid var(--violet);outline-offset:2px}"
+    },
+    {
+      "name": "Top Bar",
+      "kind": "nav",
+      "refersTo": "",
+      "description": "Wordmark, live status and data facts on paper with a hairline.",
+      "html": "<header class=\"ds-top\"><a class=\"ds-mark\" href=\"#\"><b>Case<i>Local</i></b><span>Rechtsprechungsrecherche</span></a><div class=\"ds-status\"><span class=\"ds-live\">Lokal · offline</span><span class=\"ds-sep\"></span><span>gemma4:12b · 10.000 Entscheidungen</span></div></header>",
+      "css": ":host{--paper:#F7F8FA;--rail:#EEEFF4;--sheet:#FFFFFF;--ink:#161A2B;--ink-2:#464B5F;--ink-3:#62677D;--rule:#DADCE4;--rule-2:#C4C7D2;--violet:#5636B0;--violet-ink:#FFFFFF;--violet-wash:#ECE8F8;--violet-line:#C9BEEC;--ok:#1C7448;--part:#9A5B00;--no:#B42318;--f-ui:\"Source Sans 3\",\"Segoe UI\",system-ui,sans-serif;--f-read:\"Source Serif 4\",Georgia,serif;--ease:cubic-bezier(.16,1,.3,1)} .ds-top{display:flex;align-items:center;gap:24px;padding:0 24px;height:56px;background:var(--paper);border-bottom:1px solid var(--rule);font-family:var(--f-ui)} .ds-mark{display:flex;align-items:baseline;gap:10px;text-decoration:none;color:var(--ink)} .ds-mark:focus-visible{outline:2px solid var(--violet);outline-offset:2px} .ds-mark b{font:600 21px/1 var(--f-read);letter-spacing:-.015em} .ds-mark i{font-style:normal;color:var(--violet)} .ds-mark span{font-size:13px;color:var(--ink-3)} .ds-status{margin-left:auto;display:flex;align-items:center;gap:16px;font-size:13px;color:var(--ink-2);font-variant-numeric:tabular-nums} .ds-live{display:flex;align-items:center;gap:6px;color:var(--ink)} .ds-live::before{content:\"\";width:7px;height:7px;border-radius:50%;background:var(--ok)} .ds-sep{width:1px;height:16px;background:var(--rule-2)}"
+    },
+    {
+      "name": "Claim Row",
+      "kind": "custom",
+      "refersTo": "claim-row",
+      "description": "Status gutter, serif statement and ruled Beleg column; hover or focus lights it.",
+      "html": "<div class=\"ds-claim\" tabindex=\"0\"><span class=\"ds-st\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 12 12\"><circle cx=\"6\" cy=\"6\" r=\"4.4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.3\"/><path d=\"M6 1.6a4.4 4.4 0 0 1 0 8.8z\" fill=\"currentColor\"/></svg></span><p class=\"ds-tx\">Fehlt die Ernsthaftigkeit, kann der Anspruch wegen Rechtsmissbrauchs nach § 242 BGB ausgeschlossen sein.</p><div class=\"ds-beleg\"><span><button class=\"ds-ref\">[4]</button> Rn. 45</span><span><button class=\"ds-ref\">[5]</button> Rn. 28</span><span class=\"ds-part\">teilweise: [5] trägt die Beweislast nicht</span></div></div>",
+      "css": ":host{--paper:#F7F8FA;--rail:#EEEFF4;--sheet:#FFFFFF;--ink:#161A2B;--ink-2:#464B5F;--ink-3:#62677D;--rule:#DADCE4;--rule-2:#C4C7D2;--violet:#5636B0;--violet-ink:#FFFFFF;--violet-wash:#ECE8F8;--violet-line:#C9BEEC;--ok:#1C7448;--part:#9A5B00;--no:#B42318;--f-ui:\"Source Sans 3\",\"Segoe UI\",system-ui,sans-serif;--f-read:\"Source Serif 4\",Georgia,serif;--ease:cubic-bezier(.16,1,.3,1)} .ds-claim{display:grid;grid-template-columns:minmax(0,1fr) 148px;gap:4px 24px;padding:12px 0 12px 30px;border-block:1px solid var(--rule);position:relative;transition:background .25s var(--ease)} .ds-claim:hover,.ds-claim:focus-visible{background:color-mix(in srgb,var(--violet-wash) 60%,transparent)} .ds-claim:focus-visible{outline:2px solid var(--violet);outline-offset:-2px} .ds-claim:hover .ds-beleg,.ds-claim:focus-visible .ds-beleg{border-left-color:var(--violet-line)} .ds-st{position:absolute;left:4px;top:19px;line-height:0;color:var(--part)} .ds-tx{margin:0;font:400 17px/1.6 var(--f-read);color:var(--ink);max-width:66ch} .ds-beleg{display:flex;flex-direction:column;gap:2px;font:400 13px var(--f-ui);color:var(--ink-2);border-left:1px solid var(--rule);padding:3px 0 0 12px;font-variant-numeric:tabular-nums} .ds-ref{border:0;background:none;padding:0 2px;margin:0 -2px;font:600 13px/1.4 var(--f-ui);color:var(--violet);cursor:pointer;border-radius:3px} .ds-ref:hover{background:var(--violet-wash)} .ds-ref:focus-visible{outline:2px solid var(--violet);outline-offset:2px} .ds-part{color:var(--part);font-size:12px;margin-top:4px}"
+    },
+    {
+      "name": "Verification Marks",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "Status by fill shape plus colour plus label.",
+      "html": "<div class=\"ds-legend\"><span class=\"ds-ok\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 12 12\"><circle cx=\"6\" cy=\"6\" r=\"5\" fill=\"currentColor\"/></svg>gestützt</span><span class=\"ds-pt\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 12 12\"><circle cx=\"6\" cy=\"6\" r=\"4.4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.3\"/><path d=\"M6 1.6a4.4 4.4 0 0 1 0 8.8z\" fill=\"currentColor\"/></svg>teilweise</span><span class=\"ds-no\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 12 12\"><circle cx=\"6\" cy=\"6\" r=\"4.4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.3\"/></svg>nicht gestützt</span><span class=\"ds-hint\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 12 12\"><circle cx=\"6\" cy=\"6\" r=\"4.4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.3\" stroke-dasharray=\"2 1.7\"/></svg>Hinweis, nicht geprüft</span></div>",
+      "css": ":host{--paper:#F7F8FA;--rail:#EEEFF4;--sheet:#FFFFFF;--ink:#161A2B;--ink-2:#464B5F;--ink-3:#62677D;--rule:#DADCE4;--rule-2:#C4C7D2;--violet:#5636B0;--violet-ink:#FFFFFF;--violet-wash:#ECE8F8;--violet-line:#C9BEEC;--ok:#1C7448;--part:#9A5B00;--no:#B42318;--f-ui:\"Source Sans 3\",\"Segoe UI\",system-ui,sans-serif;--f-read:\"Source Serif 4\",Georgia,serif;--ease:cubic-bezier(.16,1,.3,1)} .ds-legend{display:flex;flex-wrap:wrap;gap:12px;font:400 12.5px var(--f-ui);color:var(--ink-3)} .ds-legend span{display:inline-flex;align-items:center;gap:5px} .ds-ok svg{color:var(--ok)} .ds-pt svg{color:var(--part)} .ds-no svg{color:var(--no)} .ds-hint svg{color:var(--ink-3)}"
+    },
+    {
+      "name": "Source Entry",
+      "kind": "card",
+      "refersTo": "source-entry",
+      "description": "Numbered Fundstelle; excluded entries stay, struck through and tagged aussortiert.",
+      "html": "<ol class=\"ds-srcs\"><li class=\"ds-src\"><span class=\"ds-no\">2</span><div><div class=\"ds-ct\">BAG <em>Bundesgericht</em></div><div class=\"ds-az\">Urt. v. 14.11.2013 · 8 AZR 997/12</div><div class=\"ds-meta\">zitiert von 214 Entscheidungen · Rn. 15, 18</div><div class=\"ds-why\">Leitentscheidung zur Ernsthaftigkeit</div></div></li><li class=\"ds-src ds-out\"><span class=\"ds-no\">6</span><div><div class=\"ds-ct\">LAG Berlin-Brandenburg <em>Instanz</em></div><div class=\"ds-az\">Urt. v. 31.03.2014 · 9 Sa 1977/13</div><div class=\"ds-why\"><span class=\"ds-tag\">aussortiert</span>betrifft die Indizwirkung nach § 22 AGG</div></div></li></ol>",
+      "css": ":host{--paper:#F7F8FA;--rail:#EEEFF4;--sheet:#FFFFFF;--ink:#161A2B;--ink-2:#464B5F;--ink-3:#62677D;--rule:#DADCE4;--rule-2:#C4C7D2;--violet:#5636B0;--violet-ink:#FFFFFF;--violet-wash:#ECE8F8;--violet-line:#C9BEEC;--ok:#1C7448;--part:#9A5B00;--no:#B42318;--f-ui:\"Source Sans 3\",\"Segoe UI\",system-ui,sans-serif;--f-read:\"Source Serif 4\",Georgia,serif;--ease:cubic-bezier(.16,1,.3,1)} .ds-srcs{list-style:none;margin:0;padding:0;width:316px;font-family:var(--f-ui);font-variant-numeric:tabular-nums lining-nums} .ds-src{display:grid;grid-template-columns:30px minmax(0,1fr);gap:0 8px;padding:12px 8px 12px 0;border-bottom:1px solid var(--rule);border-radius:4px;transition:background .2s var(--ease)} .ds-src:hover{background:var(--violet-wash)} .ds-src:hover .ds-no{background:var(--violet);color:var(--violet-ink)} .ds-no{font:600 13px/22px var(--f-ui);color:var(--violet);text-align:center;height:22px;border-radius:4px} .ds-ct{display:flex;justify-content:space-between;gap:8px;font-size:14px;font-weight:600;color:var(--ink)} .ds-ct em{font-style:normal;font-weight:400;font-size:12.5px;color:var(--ink-3)} .ds-az{font-size:14px;color:var(--ink)} .ds-meta{font-size:12.5px;color:var(--ink-3);margin-top:2px} .ds-why{font-size:13px;color:var(--ink-2);margin-top:4px;line-height:1.45} .ds-out .ds-az{text-decoration:line-through;text-decoration-color:var(--ink-3);color:var(--ink-3)} .ds-out .ds-no{color:var(--ink-3)} .ds-tag{display:inline-block;font-size:11.5px;font-weight:600;letter-spacing:.03em;color:var(--ink-3);border:1px solid var(--rule-2);border-radius:3px;padding:0 5px;margin-right:4px}"
+    },
+    {
+      "name": "Pipeline Ledger",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "One ruled line of stages between two ink rules.",
+      "html": "<section class=\"ds-ledger\"><div class=\"ds-stage\"><span class=\"ds-h\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m3 8.5 3.2 3L13 4.5\"/></svg>Suche</span><span class=\"ds-r\">7 Treffer, hybrid</span><span class=\"ds-ms\">1,2 s</span></div><div class=\"ds-stage\"><span class=\"ds-h\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m3 8.5 3.2 3L13 4.5\"/></svg>Zitatprüfung</span><span class=\"ds-r\">10 Aussagen geprüft</span><span class=\"ds-ms\">5,1 s</span></div><div class=\"ds-total\"><strong>27,5 s</strong><span>auf diesem Rechner</span></div></section>",
+      "css": ":host{--paper:#F7F8FA;--rail:#EEEFF4;--sheet:#FFFFFF;--ink:#161A2B;--ink-2:#464B5F;--ink-3:#62677D;--rule:#DADCE4;--rule-2:#C4C7D2;--violet:#5636B0;--violet-ink:#FFFFFF;--violet-wash:#ECE8F8;--violet-line:#C9BEEC;--ok:#1C7448;--part:#9A5B00;--no:#B42318;--f-ui:\"Source Sans 3\",\"Segoe UI\",system-ui,sans-serif;--f-read:\"Source Serif 4\",Georgia,serif;--ease:cubic-bezier(.16,1,.3,1)} .ds-ledger{display:grid;grid-template-columns:repeat(2,minmax(0,1fr)) auto;border-block:1px solid var(--ink);font-family:var(--f-ui);font-variant-numeric:tabular-nums} .ds-stage{padding:12px 16px 12px 0;display:flex;flex-direction:column;gap:2px;border-right:1px solid var(--rule)} .ds-stage+.ds-stage{padding-left:16px} .ds-h{display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600;color:var(--ink)} .ds-h svg{width:14px;height:14px;color:var(--ok)} .ds-r{font-size:13px;color:var(--ink-2)} .ds-ms{font-size:12.5px;color:var(--ink-3)} .ds-total{padding:12px 0 12px 16px;display:flex;flex-direction:column;justify-content:center;align-items:flex-end;font-size:13px;color:var(--ink-3)} .ds-total strong{font-size:15px;color:var(--ink);font-weight:600}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Official Record",
+    "overview": "CaseLocal sets a research answer the way the Bundesgesetzblatt sets law: sober serif text on cool paper, divided by hairline rules, with a ruled column of Fundstellen beside every statement. Nothing floats, nothing glows. Hierarchy comes from scale, weight and the weight of the rule beneath a block, not from boxes or cards. The single accent is Stempelviolett, the violet of an Eingangsstempel, and it only ever marks what the reader can act on, what is selected, and where a Fundstelle points.\n\nThe system is dense but calm. It is built for long, careful reading on a large monitor: a reading column capped at about 66ch, a thin settings rail, and a sticky sources column. Verification is the visual subject. Every statement carries a status mark whose fill shape (solid, half, hollow, dashed hollow) says how well it is backed, every answer section names its provenance (Datenbank, Code or Modell), and decisions that were excluded stay on the page, struck through and tagged aussortiert.\n\nInteraction is quiet and explanatory: focusing a statement dims the rest of the answer and lights its sources; focusing a source lights every statement that cites it. The world ships in a light and a dark theme with identical roles.",
+    "keyCharacteristics": [
+      "Cool paper-white ground, blue-black ink, one violet accent.",
+      "Serif for what is read, sans for the instrument around it.",
+      "Tabular lining figures for every Az., Rn., date, duration and count.",
+      "Flat surfaces: depth from paper tone and rules, never shadows or gradients.",
+      "Status encoded by fill shape, colour and a written label together.",
+      "Provenance and exclusion are always visible, never smoothed away."
+    ],
+    "rules": [
+      {
+        "name": "The Stempel Rule",
+        "body": "Violet marks interaction, selection and Fundstelle references, nothing else. It never encodes verification status and never decorates.",
+        "section": "colors"
+      },
+      {
+        "name": "The Evidence Colours Rule",
+        "body": "Green, amber and red appear only on verification marks, their written status, and stage completion. They are never used for buttons, alerts or decoration.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two Voices Rule",
+        "body": "Serif for what is read (question, statements, headings, quoted law); sans for what operates (controls, labels, metadata). An Aktenzeichen inside a serif statement switches to the sans at 600 so it reads as a reference, not prose.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Figures Rule",
+        "body": "Every Az., Rn., date, duration and count is set with tabular lining figures (`font-variant-numeric: tabular-nums lining-nums`). Numbers are records and must align.",
+        "section": "typography"
+      },
+      {
+        "name": "The Weight Not Caps Rule",
+        "body": "Labels gain authority from weight 600 and ink colour, not from uppercase.",
+        "section": "typography"
+      },
+      {
+        "name": "The Beleg Column Rule",
+        "body": "No statement stands alone: every claim row carries its Fundstellen in an aligned, ruled column beside it (or directly beneath it on narrow screens).",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat Paper Rule",
+        "body": "Surfaces never lift. If something needs separation, give it a rule or a tone step, not a shadow.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Rule Weight Rule",
+        "body": "Hairline for rows, ink line for structure, double ink line for the one heading that opens the record.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** keep violet for interaction, selection and Fundstelle references only (The Stempel Rule).",
+      "**Do** encode every verification state three ways: fill shape, evidence colour and written label.",
+      "**Do** set reading text in Source Serif 4 at 17px/1.6, capped near 66ch, and UI in Source Sans 3.",
+      "**Do** set every Az., Rn., date, duration and count in tabular lining figures.",
+      "**Do** give every statement its ruled Beleg column and every section its provenance tag.",
+      "**Do** keep excluded decisions visible: struck through in ink-3 with the \"aussortiert\" tag and a reason.",
+      "**Do** separate with rules and tone steps; use the double ink rule only to open the answer.",
+      "**Do** honour reduced motion: transitions and the pulse switch off entirely."
+    ],
+    "donts": [
+      "**Don't** add shadows or gradients to any surface (The Flat Paper Rule).",
+      "**Don't** show verification status by colour alone, and don't use green, amber or red outside evidence.",
+      "**Don't** render the answer as chat bubbles or move sources into a detached sidebar list without per-statement alignment.",
+      "**Don't** remove or hide sources that were excluded or uncited.",
+      "**Don't** use uppercase labels or eyebrow kickers to create hierarchy; use weight and ink.",
+      "**Don't** set Aktenzeichen in the reading serif inside a statement; switch to the sans at 600."
+    ]
+  }
+}

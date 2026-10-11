@@ -11,3 +11,6 @@ __pycache__/
 .DS_Store
 Thumbs.db
 .pytest_cache/
+
+# Design-Werkzeug: Arbeits-Screenshots
+.impeccable/review/

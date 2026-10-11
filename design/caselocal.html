@@ -1,0 +1,577 @@
+<title>CaseLocal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap">
+<style>
+/* Layout: app shell — header, settings rail, work area; the answer reads like an official record with a ruled Fundstellen column beside every statement */
+:root{
+  --paper:#F7F8FA; --rail:#EEEFF4; --sheet:#FFFFFF;
+  --ink:#161A2B; --ink-2:#464B5F; --ink-3:#62677D;
+  --rule:#DADCE4; --rule-2:#C4C7D2;
+  --violet:#5636B0; --violet-ink:#FFFFFF; --violet-wash:#ECE8F8; --violet-line:#C9BEEC;
+  --ok:#1C7448; --part:#9A5B00; --no:#B42318; --hint:#62677D;
+  --dim:.32;
+  --f-ui:"Source Sans 3", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-read:"Source Serif 4", Georgia, "Times New Roman", serif;
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:24px; --s-6:32px; --s-7:48px;
+  --ease:cubic-bezier(.16,1,.3,1);
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --paper:#11131A; --rail:#171A23; --sheet:#151821;
+  --ink:#E6E7ED; --ink-2:#B4B7C5; --ink-3:#8F93A6;
+  --rule:#272B37; --rule-2:#363B4A;
+  --violet:#A996F2; --violet-ink:#14111F; --violet-wash:#241D42; --violet-line:#4B3C86;
+  --ok:#52C48E; --part:#E2A541; --no:#F26B5B; --hint:#8F93A6;
+  --dim:.28; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --paper:#11131A; --rail:#171A23; --sheet:#151821;
+  --ink:#E6E7ED; --ink-2:#B4B7C5; --ink-3:#8F93A6;
+  --rule:#272B37; --rule-2:#363B4A;
+  --violet:#A996F2; --violet-ink:#14111F; --violet-wash:#241D42; --violet-line:#4B3C86;
+  --ok:#52C48E; --part:#E2A541; --no:#F26B5B; --hint:#8F93A6;
+  --dim:.28; color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 var(--f-ui);font-feature-settings:"kern","liga";caret-color:var(--violet);
+  scrollbar-color:var(--rule-2) transparent}
+::selection{background:var(--violet-wash);color:var(--ink)}
+a{color:var(--violet);text-underline-offset:3px;text-decoration-thickness:1px}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--violet);outline-offset:2px;border-radius:3px}
+.num{font-variant-numeric:tabular-nums lining-nums}
+svg.i{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- Header ---------- */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;align-items:center;gap:var(--s-5);
+  padding:0 var(--s-5);height:56px;background:var(--paper);border-bottom:1px solid var(--rule)}
+.mark{display:flex;align-items:baseline;gap:10px;text-decoration:none;color:var(--ink)}
+.mark b{font:600 21px/1 var(--f-read);letter-spacing:-.015em}
+.mark b i{font-style:normal;color:var(--violet)}
+.mark span{font-size:13px;color:var(--ink-3)}
+.status{margin-left:auto;display:flex;align-items:center;gap:var(--s-4);font-size:13px;color:var(--ink-2)}
+.status .live{display:flex;align-items:center;gap:6px;color:var(--ink)}
+.status .live::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.status .sep{width:1px;height:16px;background:var(--rule-2)}
+.demo{font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--violet);border:1px solid var(--violet-line);border-radius:3px;padding:1px 7px}
+.rail-btn{display:none;align-items:center;gap:6px;border:1px solid var(--rule-2);background:none;border-radius:6px;padding:5px 10px;font-size:13px;cursor:pointer}
+
+/* ---------- Shell ---------- */
+.shell{display:grid;grid-template-columns:252px minmax(0,1fr);min-height:calc(100vh - 56px)}
+.rail{background:var(--rail);border-right:1px solid var(--rule);padding:var(--s-5) var(--s-5) var(--s-6);display:flex;flex-direction:column;gap:var(--s-6)}
+.rail h2{margin:0 0 var(--s-3);font-size:13px;font-weight:600;color:var(--ink)}
+.group{display:flex;flex-direction:column;gap:var(--s-3)}
+.field{display:flex;flex-direction:column;gap:6px;font-size:14px}
+.field label,.field .lbl{display:flex;justify-content:space-between;color:var(--ink-2)}
+.field output{color:var(--ink);font-weight:600}
+input[type=range]{width:100%;accent-color:var(--violet);margin:0}
+.sw{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--s-3);width:100%;background:none;border:0;padding:3px 0;text-align:left;font-size:14px;line-height:1.35;color:var(--ink);cursor:pointer}
+.sw > span:first-child{min-width:0;flex:1;hyphens:auto}
+.sw small{display:block;color:var(--ink-3);font-size:12.5px;margin-top:2px}
+.sw .t{flex:none;width:30px;height:18px;border-radius:9px;background:var(--rule-2);position:relative;margin-top:1px;transition:background .2s var(--ease)}
+.sw .t::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--sheet);transition:transform .2s var(--ease)}
+.sw[aria-checked=true] .t{background:var(--violet)}
+.sw[aria-checked=true] .t::after{transform:translateX(12px)}
+.sw:disabled{cursor:not-allowed;color:var(--ink-3)}
+.sw:disabled .t{opacity:.45}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--rule-2);background:var(--sheet);border-radius:3px;padding:3px 10px;font-size:13px;cursor:pointer;color:var(--ink-2)}
+.chip[aria-pressed=true]{background:var(--violet);border-color:var(--violet);color:var(--violet-ink)}
+.years{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:6px}
+.years input{width:100%;min-width:0;border:1px solid var(--rule-2);background:var(--sheet);border-radius:6px;padding:5px 8px;font-size:14px}
+.years input::placeholder{color:var(--ink-3)}
+.credit{margin-top:auto;font-size:12.5px;color:var(--ink-3);line-height:1.5;border-top:1px solid var(--rule);padding-top:var(--s-4)}
+.credit a{color:var(--ink-2)}
+
+/* ---------- Work area ---------- */
+.work{padding:var(--s-6) var(--s-6) var(--s-7);min-width:0;display:flex;flex-direction:column;gap:var(--s-5);max-width:1240px}
+.ask{display:flex;flex-direction:column;gap:var(--s-3)}
+.ask label{font-size:13px;font-weight:600;color:var(--ink-2)}
+.ask-row{display:flex;gap:var(--s-3);align-items:stretch;border:1px solid var(--rule-2);background:var(--sheet);border-radius:8px;padding:var(--s-2) var(--s-2) var(--s-2) var(--s-4);transition:border-color .2s}
+.ask-row:focus-within{border-color:var(--violet)}
+.ask textarea{flex:1;min-width:0;border:0;background:none;resize:none;font:400 19px/1.45 var(--f-read);padding:6px 0;outline:none;field-sizing:content;min-height:2.9em}
+.go{align-self:flex-end;display:flex;align-items:center;gap:8px;border:0;background:var(--violet);color:var(--violet-ink);border-radius:6px;padding:9px 16px;font-weight:600;font-size:14.5px;cursor:pointer;transition:filter .15s}
+.go:hover{filter:brightness(1.08)}
+.go:disabled{opacity:.6;cursor:progress}
+.terms{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:13px;color:var(--ink-3)}
+.terms span.k{border-bottom:1px dotted var(--rule-2);color:var(--ink-2);padding:0 1px}
+.terms .tag{margin-right:4px}
+
+/* pipeline ledger */
+.ledger{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;border-block:1px solid var(--ink)}
+.stage{padding:var(--s-3) var(--s-4) var(--s-3) 0;display:flex;flex-direction:column;gap:2px;border-right:1px solid var(--rule)}
+.stage + .stage{padding-left:var(--s-4)}
+.stage .h{display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600}
+.stage .h svg{width:14px;height:14px;color:var(--ok)}
+.stage .r{font-size:13px;color:var(--ink-2)}
+.stage .ms{font-size:12.5px;color:var(--ink-3)}
+.stage[data-state=pending]{color:var(--ink-3)}
+.stage[data-state=pending] .h svg,.stage[data-state=running] .h svg{display:none}
+.stage[data-state=pending] .r,.stage[data-state=pending] .ms,.stage[data-state=running] .r,.stage[data-state=running] .ms{visibility:hidden}
+.stage[data-state=running] .h::before{content:"";width:8px;height:8px;margin:0 3px;border-radius:50%;background:var(--violet);animation:pulse 1s var(--ease) infinite}
+@keyframes pulse{50%{transform:scale(.55);opacity:.5}}
+.total{padding:var(--s-3) 0 var(--s-3) var(--s-4);display:flex;flex-direction:column;justify-content:center;align-items:flex-end;font-size:13px;color:var(--ink-3)}
+.total strong{font-size:15px;color:var(--ink);font-weight:600}
+
+/* ---------- Result grid ---------- */
+.result{display:grid;grid-template-columns:minmax(0,1fr) 316px;gap:var(--s-7);align-items:start;transition:opacity .3s var(--ease),filter .3s var(--ease)}
+.result.busy{opacity:.35;filter:blur(1.5px);pointer-events:none}
+
+.answer{min-width:0}
+.answer > header{display:flex;align-items:baseline;justify-content:space-between;gap:var(--s-4);padding-bottom:var(--s-3);border-bottom:3px double var(--ink)}
+.answer > .tally{margin-top:var(--s-4)}
+.answer > header h2{margin:0;font:600 26px/1.2 var(--f-read);letter-spacing:-.01em}
+.legend{display:flex;flex-wrap:wrap;gap:var(--s-3);font-size:12.5px;color:var(--ink-3)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+
+.sec{padding-top:var(--s-6)}
+.sec-h{display:flex;align-items:baseline;gap:var(--s-3);margin:0 0 var(--s-2)}
+.sec-h h3{margin:0;font:600 18px/1.3 var(--f-read);text-wrap:balance}
+.sec-h .n{font:600 13px/1 var(--f-ui);color:var(--ink-3);width:18px;flex:none}
+.sec-h .prov{margin-left:auto}
+.prov{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--ink-3);white-space:nowrap}
+.prov svg{width:13px;height:13px}
+
+/* claim rows: statement | Fundstellen column */
+.rows{border-top:1px solid var(--rule)}
+.claim{display:grid;grid-template-columns:minmax(0,1fr) 148px;gap:var(--s-1) var(--s-5);padding:var(--s-3) 0 var(--s-3) 30px;border-bottom:1px solid var(--rule);position:relative;transition:opacity .25s var(--ease),background .25s var(--ease)}
+.claim:focus-visible{outline-offset:-2px}
+.claim .tx{margin:0;font:400 17px/1.6 var(--f-read);max-width:66ch;text-wrap:pretty}
+.claim .tx strong{font-weight:600}
+.claim .tx .az{font-family:var(--f-ui);font-size:15.5px;font-weight:600;white-space:nowrap}
+.claim .st{position:absolute;left:4px;top:calc(var(--s-3) + 7px)}
+.beleg{display:flex;flex-direction:column;gap:2px;font-size:13px;color:var(--ink-2);padding-top:3px;border-left:1px solid var(--rule);padding-left:var(--s-3)}
+.beleg .ln{display:flex;gap:6px;align-items:baseline;white-space:nowrap}
+.beleg .st-txt{font-size:12px;margin-top:4px}
+.st-txt.ok{color:var(--ok)} .st-txt.part{color:var(--part)} .st-txt.no{color:var(--no)} .st-txt.hint{color:var(--hint)}
+.ref{border:0;background:none;padding:0 2px;margin:0 -2px;font:600 13px/1.4 var(--f-ui);color:var(--violet);cursor:pointer;border-radius:3px}
+.ref:hover{background:var(--violet-wash)}
+svg.m{width:12px;height:12px;flex:none}
+.m.ok{color:var(--ok)} .m.part{color:var(--part)} .m.no{color:var(--no)} .m.hint{color:var(--hint)}
+
+/* focus dims the rest */
+.answer.focusing .claim:not(.lit){opacity:var(--dim)}
+.claim.lit{background:color-mix(in srgb,var(--violet-wash) 60%,transparent)}
+.claim.lit .beleg{border-left-color:var(--violet-line)}
+
+.wl{grid-column:1/-1;margin:2px 0 0}
+.wl summary{list-style:none;display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-2);cursor:pointer;padding:2px 0}
+.wl summary::-webkit-details-marker{display:none}
+.wl summary svg{width:13px;height:13px;transition:transform .2s var(--ease)}
+.wl[open] summary svg{transform:rotate(90deg)}
+.wl summary:hover{color:var(--violet)}
+.wl blockquote{margin:var(--s-2) 0 var(--s-2);padding:var(--s-3) var(--s-4);background:var(--sheet);border:1px solid var(--rule);border-radius:6px;font:400 15.5px/1.6 var(--f-read);max-width:66ch;color:var(--ink)}
+.wl blockquote p{margin:0}
+.wl blockquote footer{margin-top:var(--s-2);font:400 12.5px/1.4 var(--f-ui);color:var(--ink-3)}
+
+/* code-added block */
+.change{border-top:1px solid var(--rule)}
+.change > dl,.change > p.note{margin:0;padding:var(--s-3) 0 var(--s-3) 30px;border-bottom:1px solid var(--rule)}
+.line{display:grid;grid-template-columns:96px minmax(0,1fr);gap:var(--s-3);align-items:baseline;font-size:14.5px}
+.line dt{font-size:12.5px;color:var(--ink-3)}
+.line dd{margin:0}
+.line .az{font-weight:600}
+.change blockquote{margin:var(--s-3) 0 var(--s-3) 30px;max-width:66ch;padding-left:var(--s-4);border-left:1px solid var(--violet-line);font:italic 400 16px/1.55 var(--f-read);color:var(--ink-2)}
+.change p.note{font-size:13.5px;color:var(--ink-2);border-top:1px solid var(--rule)}
+
+/* ---------- Sources column ---------- */
+.side{position:sticky;top:calc(56px + var(--s-5));display:flex;flex-direction:column;gap:var(--s-5);max-height:calc(100vh - 56px - var(--s-6));overflow:auto;padding-right:2px;scrollbar-width:thin}
+.side h2,.tally h2{margin:0;font-size:13px;font-weight:600;display:flex;justify-content:space-between;align-items:baseline}
+.side h2 span,.tally h2 span{font-weight:400;color:var(--ink-3)}
+.tally{display:flex;flex-direction:column;gap:var(--s-2);padding-bottom:var(--s-4);border-bottom:1px solid var(--ink)}
+.marks{display:flex;gap:5px;flex-wrap:wrap}
+.marks button{border:0;background:none;padding:3px;border-radius:50%;cursor:pointer;line-height:0}
+.marks button:hover{background:var(--violet-wash)}
+.marks svg.m{width:15px;height:15px}
+.counts{display:flex;flex-wrap:wrap;column-gap:var(--s-3);font-size:13px;color:var(--ink-2)}
+.counts b{color:var(--ink);font-weight:600}
+
+.srcs{list-style:none;margin:0;padding:0}
+.src{display:grid;grid-template-columns:30px minmax(0,1fr);gap:0 var(--s-2);padding:var(--s-3) var(--s-2) var(--s-3) 0;border-bottom:1px solid var(--rule);border-radius:4px;transition:background .2s var(--ease),opacity .25s var(--ease);cursor:default}
+.src .no{font:600 13px/22px var(--f-ui);color:var(--violet);text-align:center;height:22px;border-radius:4px}
+.src .ct{display:flex;justify-content:space-between;gap:var(--s-2);font-size:14px;font-weight:600}
+.src .ct em{font-style:normal;font-weight:400;font-size:12.5px;color:var(--ink-3)}
+.src .az{font-size:14px;color:var(--ink)}
+.src .meta{font-size:12.5px;color:var(--ink-3);margin-top:2px}
+.src .why{font-size:13px;color:var(--ink-2);margin-top:4px;line-height:1.45}
+.src.lit{background:var(--violet-wash)}
+.src.lit .no{background:var(--violet);color:var(--violet-ink)}
+.side.focusing .src:not(.lit){opacity:.45}
+.src.out .az{text-decoration:line-through;text-decoration-color:var(--ink-3);color:var(--ink-3)}
+.src.out .no{color:var(--ink-3)}
+.out-tag{display:inline-block;font-size:11.5px;font-weight:600;letter-spacing:.03em;color:var(--ink-3);border:1px solid var(--rule-2);border-radius:3px;padding:0 5px;margin-right:4px}
+.side .fine{font-size:12.5px;color:var(--ink-3);line-height:1.5;margin:0}
+
+.foot{border-top:1px solid var(--rule);padding-top:var(--s-4);font-size:12.5px;color:var(--ink-3);display:flex;flex-wrap:wrap;gap:var(--s-2) var(--s-5)}
+
+/* ---------- Responsive ---------- */
+@media (max-width:1180px){
+  .result{grid-template-columns:minmax(0,1fr);gap:var(--s-6)}
+  .side{position:static;max-height:none;overflow:visible}
+  .srcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));column-gap:var(--s-5)}
+}
+@media (max-width:880px){
+  .shell{grid-template-columns:minmax(0,1fr)}
+  .rail{border-right:0;border-bottom:1px solid var(--rule)}
+  .rail[data-collapsed=true]{display:none}
+  .rail-btn{display:inline-flex}
+  .status .opt{display:none}
+  .work{padding:var(--s-5) var(--s-4) var(--s-6)}
+  .top{padding:0 var(--s-4);gap:var(--s-3)}
+  .mark span{display:none}
+  .ledger{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stage{border-bottom:1px solid var(--rule)}
+  .stage:nth-child(3){padding-left:0}
+  .stage:nth-child(2n){border-right:0}
+  .total{grid-column:1/-1;flex-direction:row;justify-content:space-between;align-items:baseline;padding-left:0}
+}
+@media (max-width:640px){
+  .claim{grid-template-columns:minmax(0,1fr);gap:var(--s-2);padding-left:24px}
+  .claim .tx{font-size:16.5px}
+  .beleg{border-left:0;padding-left:0;flex-direction:row;flex-wrap:wrap;column-gap:var(--s-3)}
+  .beleg .st-txt{margin-top:0}
+  .answer > header{flex-direction:column;gap:var(--s-2)}
+  .ask-row{flex-direction:column;padding:var(--s-3)}
+  .go{align-self:stretch;justify-content:center}
+  .line{grid-template-columns:minmax(0,1fr);gap:0}
+  .status .live .x{display:none}
+  .sec-h{flex-wrap:wrap;row-gap:2px}
+  .sec-h .prov{flex-basis:100%;margin-left:30px}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="m-ok" viewBox="0 0 12 12"><circle cx="6" cy="6" r="5" fill="currentColor"/></symbol>
+  <symbol id="m-part" viewBox="0 0 12 12"><circle cx="6" cy="6" r="4.4" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M6 1.6a4.4 4.4 0 0 1 0 8.8z" fill="currentColor"/></symbol>
+  <symbol id="m-no" viewBox="0 0 12 12"><circle cx="6" cy="6" r="4.4" fill="none" stroke="currentColor" stroke-width="1.3"/></symbol>
+  <symbol id="m-hint" viewBox="0 0 12 12"><circle cx="6" cy="6" r="4.4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-dasharray="2 1.7"/></symbol>
+  <symbol id="i-db" viewBox="0 0 16 16"><ellipse cx="8" cy="3.8" rx="5" ry="1.8"/><path d="M3 3.8v8.4c0 1 2.2 1.8 5 1.8s5-.8 5-1.8V3.8M3 8c0 1 2.2 1.8 5 1.8S13 9 13 8"/></symbol>
+  <symbol id="i-code" viewBox="0 0 16 16"><path d="M5.5 4.5 2 8l3.5 3.5M10.5 4.5 14 8l-3.5 3.5"/></symbol>
+  <symbol id="i-model" viewBox="0 0 16 16"><path d="M2.5 13.5h3l7.3-7.3a2.1 2.1 0 0 0-3-3L2.5 10.5z"/><path d="m8.8 4.2 3 3"/></symbol>
+  <symbol id="i-check" viewBox="0 0 16 16"><path d="m3 8.5 3.2 3L13 4.5"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 16 16"><path d="m6 3.5 4.5 4.5L6 12.5"/></symbol>
+  <symbol id="i-search" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="m10.4 10.4 3.4 3.4"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 16 16"><path d="M2.5 4.5h7M12.5 4.5h1M2.5 11.5h1M6.5 11.5h7"/><circle cx="11" cy="4.5" r="1.5"/><circle cx="5" cy="11.5" r="1.5"/></symbol>
+</svg>
+
+<header class="top">
+  <a class="mark" href="#frage" aria-label="CaseLocal"><b>Case<i>Local</i></b><span>Rechtsprechungsrecherche</span></a>
+  <button class="rail-btn" id="railBtn" aria-controls="rail" aria-expanded="false"><svg class="i"><use href="#i-sliders"/></svg>Einstellungen</button>
+  <div class="status">
+    <span class="live" title="Ollama läuft lokal, kein Text verlässt den Rechner"><span>Lokal<span class="x"> · offline</span></span></span>
+    <span class="sep opt"></span>
+    <span class="opt num">gemma4:12b · 10.000 von rund 424.000 Entscheidungen · Bundesrecht</span>
+    <span class="demo" title="Beispieldaten zur Veranschaulichung des Designs">Beispiel</span>
+  </div>
+</header>
+
+<div class="shell">
+  <aside class="rail" id="rail" data-collapsed="false" aria-label="Einstellungen und Filter">
+    <section class="group" aria-labelledby="h-an">
+      <h2 id="h-an">Analyse</h2>
+      <div class="field">
+        <label for="anzahl">Anzahl Treffer <output id="anzahlOut" for="anzahl" class="num">8</output></label>
+        <input type="range" id="anzahl" min="3" max="20" value="8">
+      </div>
+      <button class="sw" role="switch" aria-checked="true" id="sw-kw"><span>Frage in Suchbegriffe übersetzen</span><span class="t"></span></button>
+      <button class="sw" role="switch" aria-checked="true" id="sw-ki"><span>KI-Antwort erzeugen</span><span class="t"></span></button>
+      <button class="sw dep" role="switch" aria-checked="true" id="sw-gr"><span>Gründliche Analyse<small>Jedes Urteil einzeln prüfen</small></span><span class="t"></span></button>
+      <button class="sw dep" role="switch" aria-checked="true" id="sw-zp"><span>Zitatprüfung<small>Jede Aussage gegen ihre Quelle</small></span><span class="t"></span></button>
+      <button class="sw" role="switch" aria-checked="true" id="sw-ra"><span>Auf Rechtsprechungs&shy;änderungen prüfen</span><span class="t"></span></button>
+    </section>
+    <section class="group" aria-labelledby="h-fi">
+      <h2 id="h-fi">Filter</h2>
+      <div class="field">
+        <span class="lbl">Gerichtsbarkeit</span>
+        <div class="chips" role="group" aria-label="Gerichtsbarkeit">
+          <button class="chip" aria-pressed="false">Ordentliche</button>
+          <button class="chip" aria-pressed="true">Arbeit</button>
+          <button class="chip" aria-pressed="false">Verwaltung</button>
+          <button class="chip" aria-pressed="false">Sozial</button>
+          <button class="chip" aria-pressed="false">Finanz</button>
+          <button class="chip" aria-pressed="false">Verfassung</button>
+        </div>
+      </div>
+      <div class="field">
+        <span class="lbl" id="lbl-jahr">Entscheidungsjahr</span>
+        <div class="years num" role="group" aria-labelledby="lbl-jahr">
+          <input id="von" inputmode="numeric" placeholder="von" aria-label="von Jahr">
+          <span aria-hidden="true">–</span>
+          <input id="bis" inputmode="numeric" placeholder="bis" aria-label="bis Jahr">
+        </div>
+      </div>
+    </section>
+    <p class="credit">Daten: <a href="https://openlegaldata.io" target="_blank" rel="noopener">Open Legal Data</a>, Ostendorff, Blume &amp; Ostendorff (<a href="https://doi.org/10.1145/3383583.3398616" target="_blank" rel="noopener">JCDL 2020</a>), ODbL 1.0. Bestand: 10.000 von rund 424.000 Entscheidungen. Gesetze: die 100 meistzitierten Bundesgesetze von gesetze-im-internet.de, kein Landes- oder EU-Recht. Keine Rechtsberatung.</p>
+  </aside>
+
+  <main class="work">
+    <form class="ask" id="frage" autocomplete="off">
+      <label for="q">Rechtsfrage oder Schlagworte</label>
+      <div class="ask-row">
+        <textarea id="q" rows="2">Muss eine Bewerbung subjektiv ernsthaft sein, damit ein Entschädigungsanspruch nach § 15 Abs. 2 AGG besteht?</textarea>
+        <button class="go" id="go" type="submit"><svg class="i"><use href="#i-search"/></svg>Recherchieren</button>
+      </div>
+      <div class="terms"><span class="prov tag"><svg class="i"><use href="#i-model"/></svg>Suchbegriffe:</span>
+        <span class="k">§&nbsp;15 Abs.&nbsp;2&nbsp;AGG</span><span class="k">Entschädigung</span><span class="k">Bewerbung</span><span class="k">subjektive Ernsthaftigkeit</span><span class="k">Rechtsmissbrauch</span><span class="k">AGG-Hopping</span>
+      </div>
+    </form>
+
+    <section class="ledger" aria-label="Ablauf der Recherche" aria-live="polite">
+      <div class="stage" data-state="done"><span class="h"><svg class="i"><use href="#i-check"/></svg>Suche</span><span class="r">7 Treffer, hybrid</span><span class="ms num">1,2 s</span></div>
+      <div class="stage" data-state="done"><span class="h"><svg class="i"><use href="#i-check"/></svg>Einzelprüfung</span><span class="r">6 von 7 relevant</span><span class="ms num">9,8 s</span></div>
+      <div class="stage" data-state="done"><span class="h"><svg class="i"><use href="#i-check"/></svg>Antwort</span><span class="r">5 Abschnitte</span><span class="ms num">11,4 s</span></div>
+      <div class="stage" data-state="done"><span class="h"><svg class="i"><use href="#i-check"/></svg>Zitatprüfung</span><span class="r">10 Aussagen geprüft</span><span class="ms num">5,1 s</span></div>
+      <div class="total"><strong class="num">27,5 s</strong><span>auf diesem Rechner</span></div>
+    </section>
+
+    <div class="result" id="result">
+      <article class="answer" id="answer" aria-labelledby="h-antwort">
+        <header>
+          <h2 id="h-antwort">Antwort</h2>
+          <div class="legend" aria-label="Zeichenerklärung Zitatprüfung">
+            <span><svg class="m ok"><use href="#m-ok"/></svg>gestützt</span>
+            <span><svg class="m part"><use href="#m-part"/></svg>teilweise</span>
+            <span><svg class="m no"><use href="#m-no"/></svg>nicht gestützt</span>
+            <span><svg class="m hint"><use href="#m-hint"/></svg>Hinweis, nicht geprüft</span>
+          </div>
+        </header>
+
+        <section class="sec">
+          <div class="sec-h"><span class="n">1</span><h3>Kurzantwort</h3><span class="prov"><svg class="i"><use href="#i-model"/></svg>Modell, geprüft</span></div>
+          <div class="rows">
+            <div class="claim" tabindex="0" data-src="2 3" data-id="c1">
+              <svg class="m ok st" aria-hidden="true"><use href="#m-ok"/></svg>
+              <p class="tx">Für den Entschädigungsanspruch nach §&nbsp;15 Abs.&nbsp;2&nbsp;AGG kommt es <strong>nicht</strong> darauf an, ob die Bewerbung subjektiv ernsthaft war.</p>
+              <div class="beleg"><span class="ln"><button class="ref" data-n="2">[2]</button><span class="num">Rn.&nbsp;18</span></span><span class="ln"><button class="ref" data-n="3">[3]</button><span class="num">Rn.&nbsp;31</span></span><span class="st-txt ok">gestützt</span></div>
+            </div>
+            <div class="claim" tabindex="0" data-src="4 5" data-id="c2">
+              <svg class="m part st" aria-hidden="true"><use href="#m-part"/></svg>
+              <p class="tx">Fehlt die Ernsthaftigkeit, kann der Anspruch wegen Rechtsmissbrauchs nach §&nbsp;242&nbsp;BGB ausgeschlossen sein. Die Voraussetzungen muss der Arbeitgeber darlegen und beweisen.</p>
+              <div class="beleg"><span class="ln"><button class="ref" data-n="4">[4]</button><span class="num">Rn.&nbsp;45</span></span><span class="ln"><button class="ref" data-n="5">[5]</button><span class="num">Rn.&nbsp;28</span></span><span class="st-txt part">teilweise: [5] trägt die Beweislast nicht</span></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="sec">
+          <div class="sec-h"><span class="n">2</span><h3>Einschlägige Normen</h3><span class="prov"><svg class="i"><use href="#i-db"/></svg>Wortlaut nachgeschlagen</span></div>
+          <div class="rows">
+            <div class="claim" tabindex="0" data-src="2 3 4" data-id="c3">
+              <svg class="m ok st" aria-hidden="true"><use href="#m-ok"/></svg>
+              <p class="tx"><strong>§&nbsp;15 Abs.&nbsp;2&nbsp;AGG</strong>: Anspruchsgrundlage für eine angemessene Entschädigung wegen eines Nichtvermögensschadens.</p>
+              <div class="beleg"><span class="ln"><button class="ref" data-n="2">[2]</button><button class="ref" data-n="3">[3]</button><button class="ref" data-n="4">[4]</button></span><span class="st-txt ok">gestützt</span></div>
+              <details class="wl"><summary><svg class="i"><use href="#i-chev"/></svg>Wortlaut §&nbsp;15 Abs.&nbsp;2&nbsp;AGG</summary>
+                <blockquote><p>Wegen eines Schadens, der nicht Vermögensschaden ist, kann der oder die Beschäftigte eine angemessene Entschädigung in Geld verlangen. Die Entschädigung darf bei einer Nichteinstellung drei Monatsgehälter nicht übersteigen, wenn der oder die Beschäftigte auch bei benachteiligungsfreier Auswahl nicht eingestellt worden wäre.</p>
+                <footer>Heutige Fassung laut gesetze-im-internet.de. Ältere Urteile haben die damals geltende Fassung angewendet.</footer></blockquote>
+              </details>
+            </div>
+            <div class="claim" tabindex="0" data-src="2" data-id="c4">
+              <svg class="m ok st" aria-hidden="true"><use href="#m-ok"/></svg>
+              <p class="tx"><strong>§&nbsp;6 Abs.&nbsp;1 Satz&nbsp;2&nbsp;AGG</strong>: Bewerberinnen und Bewerber gelten als Beschäftigte und sind damit geschützt.</p>
+              <div class="beleg"><span class="ln"><button class="ref" data-n="2">[2]</button><span class="num">Rn.&nbsp;15</span></span><span class="st-txt ok">gestützt</span></div>
+              <details class="wl"><summary><svg class="i"><use href="#i-chev"/></svg>Wortlaut §&nbsp;6 Abs.&nbsp;1 Satz&nbsp;2&nbsp;AGG</summary>
+                <blockquote><p>Als Beschäftigte gelten auch die Bewerberinnen und Bewerber für ein Beschäftigungsverhältnis sowie die Personen, deren Beschäftigungsverhältnis beendet ist.</p>
+                <footer>Heutige Fassung laut gesetze-im-internet.de.</footer></blockquote>
+              </details>
+            </div>
+            <div class="claim" tabindex="0" data-src="4 5" data-id="c5">
+              <svg class="m ok st" aria-hidden="true"><use href="#m-ok"/></svg>
+              <p class="tx"><strong>§&nbsp;242&nbsp;BGB</strong>: Grundlage für den Einwand, die Bewerbung sei nur zum Erlangen einer Entschädigung erfolgt.</p>
+              <div class="beleg"><span class="ln"><button class="ref" data-n="4">[4]</button><button class="ref" data-n="5">[5]</button></span><span class="st-txt ok">gestützt</span></div>
+              <details class="wl"><summary><svg class="i"><use href="#i-chev"/></svg>Wortlaut §&nbsp;242&nbsp;BGB</summary>
+                <blockquote><p>Der Schuldner ist verpflichtet, die Leistung so zu bewirken, wie Treu und Glauben mit Rücksicht auf die Verkehrssitte es erfordern.</p>
+                <footer>Heutige Fassung laut gesetze-im-internet.de.</footer></blockquote>
+              </details>
+            </div>
+            <div class="claim" tabindex="0" data-src="3" data-id="c6">
+              <svg class="m no st" aria-hidden="true"><use href="#m-no"/></svg>
+              <p class="tx"><strong>§&nbsp;15 Abs.&nbsp;4&nbsp;AGG</strong>: Der Anspruch muss innerhalb von zwei Monaten schriftlich geltend gemacht werden.</p>
+              <div class="beleg"><span class="ln"><button class="ref" data-n="3">[3]</button></span><span class="st-txt no">nicht gestützt: [3] erwähnt die Frist nicht</span></div>
+              <details class="wl"><summary><svg class="i"><use href="#i-chev"/></svg>Wortlaut §&nbsp;15 Abs.&nbsp;4&nbsp;AGG</summary>
+                <blockquote><p>Ein Anspruch nach Absatz 1 oder 2 muss innerhalb einer Frist von zwei Monaten schriftlich geltend gemacht werden, es sei denn, die Tarifvertragsparteien haben etwas anderes vereinbart. Die Frist beginnt im Falle einer Bewerbung oder eines beruflichen Aufstiegs mit dem Zugang der Ablehnung und in den sonstigen Fällen einer Benachteiligung zu dem Zeitpunkt, in dem der oder die Beschäftigte von der Benachteiligung Kenntnis erlangt.</p>
+                <footer>Heutige Fassung laut gesetze-im-internet.de. Der Wortlaut stützt die Aussage, das zitierte Urteil nicht.</footer></blockquote>
+              </details>
+            </div>
+          </div>
+        </section>
+
+        <section class="sec">
+          <div class="sec-h"><span class="n">3</span><h3>Rechtsprechung</h3><span class="prov"><svg class="i"><use href="#i-db"/></svg>Urteilsköpfe aus der Datenbank</span></div>
+          <div class="rows">
+            <div class="claim" tabindex="0" data-src="2" data-id="c7">
+              <svg class="m ok st" aria-hidden="true"><use href="#m-ok"/></svg>
+              <p class="tx"><span class="az num">BAG, Urt. v. 14.11.2013 – 8&nbsp;AZR&nbsp;997/12</span>: Die subjektive Ernsthaftigkeit ist keine Voraussetzung des Anspruchs. Ihr Fehlen kann allenfalls den Einwand treuwidrigen Verhaltens begründen.</p>
+              <div class="beleg"><span class="ln"><button class="ref" data-n="2">[2]</button><span class="num">Rn.&nbsp;18</span></span><span class="st-txt ok">gestützt</span></div>
+            </div>
+            <div class="claim" tabindex="0" data-src="3" data-id="c8">
+              <svg class="m ok st" aria-hidden="true"><use href="#m-ok"/></svg>
+              <p class="tx"><span class="az num">BAG, Urt. v. 22.08.2013 – 8&nbsp;AZR&nbsp;563/12</span>: Bewerber im Sinne von §&nbsp;6 Abs.&nbsp;1 Satz&nbsp;2&nbsp;AGG ist, wer eine Bewerbung eingereicht hat. Auf die Ernsthaftigkeit kommt es für diesen Status nicht an.</p>
+              <div class="beleg"><span class="ln"><button class="ref" data-n="3">[3]</button><span class="num">Rn.&nbsp;31</span></span><span class="st-txt ok">gestützt</span></div>
+            </div>
+            <div class="claim" tabindex="0" data-src="4" data-id="c9">
+              <svg class="m ok st" aria-hidden="true"><use href="#m-ok"/></svg>
+              <p class="tx"><span class="az num">BAG, Urt. v. 25.10.2018 – 8&nbsp;AZR&nbsp;562/16</span>: Rechtsmissbräuchlich handelt, wem es nicht um die Stelle, sondern nur um die Entschädigung geht. Das muss der Arbeitgeber darlegen und beweisen.</p>
+              <div class="beleg"><span class="ln"><button class="ref" data-n="4">[4]</button><span class="num">Rn.&nbsp;45</span></span><span class="st-txt ok">gestützt</span></div>
+            </div>
+            <div class="claim" tabindex="0" data-src="5" data-id="c10">
+              <svg class="m ok st" aria-hidden="true"><use href="#m-ok"/></svg>
+              <p class="tx"><span class="az num">BAG, Beschl. v. 18.06.2015 – 8&nbsp;AZR&nbsp;848/13 (A)</span>: Der Senat legt dem EuGH die Frage vor, ob auch eine nur formal eingereichte Bewerbung unionsrechtlich geschützt ist.</p>
+              <div class="beleg"><span class="ln"><button class="ref" data-n="5">[5]</button><span class="num">Rn.&nbsp;28</span></span><span class="st-txt ok">gestützt</span></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="sec">
+          <div class="sec-h"><span class="n">4</span><h3>Rechtsprechungsänderung</h3><span class="prov"><svg class="i"><use href="#i-code"/></svg>per Code ergänzt · Heuristik</span></div>
+          <div class="change" data-src="1 2">
+            <dl class="line"><dt>Ältere Linie</dt><dd><button class="ref" data-n="1">[1]</button> <span class="az num">BAG, Urt. v. 12.11.1998 – 8&nbsp;AZR&nbsp;365/97</span>: verlangt eine subjektiv ernsthafte Bewerbung.</dd></dl>
+            <dl class="line"><dt>Erörtert in</dt><dd><button class="ref" data-n="2">[2]</button> <span class="az num">BAG, Urt. v. 14.11.2013 – 8&nbsp;AZR&nbsp;997/12</span>, Rn.&nbsp;18</dd></dl>
+            <blockquote>Originalstelle in [2] als Auszug. Hier steht in der App der Wortlaut der Randnummer, in der das Gericht die Änderung erörtert.</blockquote>
+            <p class="note">CaseLocal zeigt die Originalstelle, entscheidet aber nicht, welche Linie heute gilt.</p>
+          </div>
+        </section>
+
+        <section class="sec">
+          <div class="sec-h"><span class="n">5</span><h3>Unionsrecht und offene Punkte</h3><span class="prov"><svg class="i"><use href="#i-code"/></svg>EuGH-Bezug per Code erkannt</span></div>
+          <div class="rows">
+            <div class="claim" tabindex="0" data-src="5" data-id="c11">
+              <svg class="m hint st" aria-hidden="true"><use href="#m-hint"/></svg>
+              <p class="tx">[5] ist eine Vorlage an den EuGH, entschieden in der Rechtssache C&#8209;423/15 (Kratzer). EuGH-Urteile sind nicht im Datenbestand und werden nicht ausgewertet.</p>
+              <div class="beleg"><span class="ln"><button class="ref" data-n="5">[5]</button></span><span class="st-txt hint">Hinweis</span></div>
+            </div>
+            <div class="claim" tabindex="0" data-src="" data-id="c12">
+              <svg class="m hint st" aria-hidden="true"><use href="#m-hint"/></svg>
+              <p class="tx">Ob einzelne Indizien wie Serienbewerbungen für Rechtsmissbrauch genügen, beantworten die gefundenen Urteile nur für den jeweiligen Einzelfall.</p>
+              <div class="beleg"><span class="ln">ohne Beleg</span><span class="st-txt hint">Hinweis</span></div>
+            </div>
+          </div>
+        </section>
+      </article>
+
+      <aside class="side" id="side" aria-label="Fundstellen">
+        <div class="tally">
+          <h2>Zitatprüfung <span class="num">10 Aussagen</span></h2>
+          <div class="marks" id="marks"></div>
+          <div class="counts num"><span><b>8</b> gestützt</span><span><b>1</b> teilweise</span><span><b>1</b> nicht gestützt</span></div>
+        </div>
+
+        <div>
+          <h2>Fundstellen <span class="num">6 von 7 relevant</span></h2>
+          <ol class="srcs" id="srcs">
+            <li class="src" data-n="1"><span class="no num">1</span><div><div class="ct">BAG <em>Bundesgericht</em></div><div class="az num">Urt. v. 12.11.1998 · 8&nbsp;AZR&nbsp;365/97</div><div class="meta num">zitiert von 96 Entscheidungen</div><div class="why">Ältere Linie, durch [2] erörtert</div></div></li>
+            <li class="src" data-n="2"><span class="no num">2</span><div><div class="ct">BAG <em>Bundesgericht</em></div><div class="az num">Urt. v. 14.11.2013 · 8&nbsp;AZR&nbsp;997/12</div><div class="meta num">zitiert von 214 Entscheidungen · Rn.&nbsp;15, 18</div><div class="why">Leitentscheidung zur Ernsthaftigkeit</div></div></li>
+            <li class="src" data-n="3"><span class="no num">3</span><div><div class="ct">BAG <em>Bundesgericht</em></div><div class="az num">Urt. v. 22.08.2013 · 8&nbsp;AZR&nbsp;563/12</div><div class="meta num">zitiert von 61 Entscheidungen · Rn.&nbsp;31</div><div class="why">Bewerberbegriff nach §&nbsp;6&nbsp;AGG</div></div></li>
+            <li class="src" data-n="4"><span class="no num">4</span><div><div class="ct">BAG <em>Bundesgericht</em></div><div class="az num">Urt. v. 25.10.2018 · 8&nbsp;AZR&nbsp;562/16</div><div class="meta num">zitiert von 88 Entscheidungen · Rn.&nbsp;45</div><div class="why">Rechtsmissbrauch und Beweislast</div></div></li>
+            <li class="src" data-n="5"><span class="no num">5</span><div><div class="ct">BAG <em>Bundesgericht</em></div><div class="az num">Beschl. v. 18.06.2015 · 8&nbsp;AZR&nbsp;848/13 (A)</div><div class="meta num">zitiert von 47 Entscheidungen · Rn.&nbsp;28</div><div class="why">EuGH-Vorlage, C&#8209;423/15</div></div></li>
+            <li class="src out" data-n="6"><span class="no num">6</span><div><div class="ct">LAG Berlin-Brandenburg <em>Instanz</em></div><div class="az num">Urt. v. 31.03.2014 · 9&nbsp;Sa&nbsp;1977/13</div><div class="why"><span class="out-tag">aussortiert</span>betrifft die Indizwirkung nach §&nbsp;22&nbsp;AGG, nicht die Ernsthaftigkeit</div></div></li>
+            <li class="src" data-n="7"><span class="no num">7</span><div><div class="ct">BAG <em>Bundesgericht</em></div><div class="az num">Urt. v. 19.05.2016 · 8&nbsp;AZR&nbsp;470/14</div><div class="meta num">zitiert von 52 Entscheidungen</div><div class="why">relevant, in der Antwort nicht zitiert</div></div></li>
+          </ol>
+        </div>
+        <p class="fine">Beispielansicht: Fundstellen, Randnummern und Zitierzahlen illustrieren das Design und sind nicht geprüft. Maßgeblich ist immer der Urteilstext.</p>
+      </aside>
+    </div>
+
+    <footer class="foot"><span>Demo-Projekt, keine Rechtsberatung.</span><span>KI-Zusammenfassungen können Fehler enthalten.</span><span>Läuft vollständig lokal.</span></footer>
+  </main>
+</div>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const answer = $('#answer'), side = $('#side'), srcs = $$('.src');
+  const claims = $$('.claim');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // tally marks, one per checked statement (Hinweise excluded)
+  const marks = $('#marks');
+  claims.forEach((c, i) => {
+    const kind = ['ok','part','no'].find(k => c.querySelector('.st').classList.contains(k));
+    if (!kind) return;
+    const label = {ok:'gestützt', part:'teilweise gestützt', no:'nicht gestützt'}[kind];
+    const b = document.createElement('button');
+    b.type = 'button'; b.dataset.id = c.dataset.id;
+    b.setAttribute('aria-label', `Aussage ${marks.children.length + 1}: ${label}`);
+    b.innerHTML = `<svg class="m ${kind}"><use href="#m-${kind}"/></svg>`;
+    b.addEventListener('mouseenter', () => focusClaim(c));
+    b.addEventListener('focus', () => focusClaim(c));
+    b.addEventListener('mouseleave', clear); b.addEventListener('blur', clear);
+    b.addEventListener('click', () => { c.scrollIntoView({behavior: reduce ? 'auto' : 'smooth', block:'center'}); c.focus({preventScroll:true}); });
+    marks.append(b);
+  });
+
+  function clear(){
+    answer.classList.remove('focusing'); side.classList.remove('focusing');
+    $$('.lit').forEach(e => e.classList.remove('lit'));
+  }
+  function light(ns){ srcs.forEach(s => s.classList.toggle('lit', ns.includes(s.dataset.n))); }
+  function focusClaim(c){
+    clear();
+    const ns = (c.dataset.src || '').split(' ').filter(Boolean);
+    c.classList.add('lit'); answer.classList.add('focusing');
+    if (ns.length){ light(ns); side.classList.add('focusing'); }
+  }
+  claims.forEach(c => {
+    c.addEventListener('mouseenter', () => focusClaim(c));
+    c.addEventListener('focusin', () => focusClaim(c));
+    c.addEventListener('mouseleave', clear);
+    c.addEventListener('focusout', e => { if (!c.contains(e.relatedTarget)) clear(); });
+  });
+  // reverse: a source lights every statement that cites it
+  srcs.forEach(s => {
+    s.addEventListener('mouseenter', () => {
+      clear(); const n = s.dataset.n; let any = false;
+      claims.forEach(c => { if ((c.dataset.src||'').split(' ').includes(n)) { c.classList.add('lit'); any = true; } });
+      s.classList.add('lit'); side.classList.add('focusing');
+      if (any) answer.classList.add('focusing');
+    });
+    s.addEventListener('mouseleave', clear);
+  });
+  // [n] jumps to its source
+  $$('.ref').forEach(r => r.addEventListener('click', e => {
+    e.stopPropagation();
+    const s = $(`.src[data-n="${r.dataset.n}"]`); if (!s) return;
+    s.scrollIntoView({behavior: reduce ? 'auto' : 'smooth', block:'nearest'});
+    s.classList.add('lit'); setTimeout(() => s.classList.remove('lit'), 1400);
+  }));
+
+  // narrow layouts: the tally sits under the Antwort header
+  const tally = $('.tally'), tallyHome = tally.parentNode, stacked = matchMedia('(max-width:1180px)');
+  const placeTally = () => stacked.matches ? answer.querySelector(':scope > header').after(tally) : tallyHome.prepend(tally);
+  placeTally(); stacked.addEventListener('change', placeTally);
+
+  // settings
+  const range = $('#anzahl'), out = $('#anzahlOut');
+  range.addEventListener('input', () => out.value = range.value);
+  $$('.sw').forEach(sw => sw.addEventListener('click', () => {
+    sw.setAttribute('aria-checked', sw.getAttribute('aria-checked') !== 'true');
+    if (sw.id === 'sw-ki') $$('.sw.dep').forEach(d => d.disabled = sw.getAttribute('aria-checked') !== 'true');
+  }));
+  $$('.chip').forEach(c => c.addEventListener('click', () => c.setAttribute('aria-pressed', c.getAttribute('aria-pressed') !== 'true')));
+
+  // mobile rail
+  const rail = $('#rail'), railBtn = $('#railBtn'), narrow = matchMedia('(max-width:880px)');
+  const setRail = open => { rail.dataset.collapsed = !open; railBtn.setAttribute('aria-expanded', open); };
+  const sync = () => setRail(!narrow.matches);
+  sync(); narrow.addEventListener('change', sync);
+  railBtn.addEventListener('click', () => setRail(rail.dataset.collapsed === 'true'));
+
+  // replay the pipeline
+  const form = $('#frage'), go = $('#go'), result = $('#result'), stages = $$('.stage');
+  const q = $('#q');
+  q.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); } });
+  form.addEventListener('submit', e => {
+    e.preventDefault(); if (go.disabled) return;
+    clear();
+    const step = reduce ? 0 : 650;
+    go.disabled = true; result.classList.add('busy'); result.setAttribute('aria-busy','true');
+    stages.forEach(s => s.dataset.state = 'pending');
+    stages.forEach((s, i) => {
+      setTimeout(() => { s.dataset.state = 'running'; }, i * step);
+      setTimeout(() => { s.dataset.state = 'done'; }, (i + 1) * step);
+    });
+    setTimeout(() => { go.disabled = false; result.classList.remove('busy'); result.removeAttribute('aria-busy'); }, stages.length * step + 50);
+  });
+})();
+</script>

@@ -4,7 +4,7 @@
 
 [![Tests](https://github.com/L0enneberga/CaseLocal/actions/workflows/tests.yml/badge.svg)](https://github.com/L0enneberga/CaseLocal/actions/workflows/tests.yml)
 
-Recherche in den 10.000 bedeutendsten deutschen Gerichtsentscheidungen – mit hybrider Suche, gegliederter KI-Antwort, dem Wortlaut der einschlägigen Gesetze und einer Zitatprüfung, die nicht belegte Aussagen sichtbar macht. **Alles läuft lokal**: Kein Text verlässt den Rechner und es entstehen keine API-Kosten.
+Recherche in den 10.000 bedeutendsten deutschen Gerichtsentscheidungen mit hybrider Suche, gegliederter KI-Antwort, dem Wortlaut der einschlägigen Gesetze und einer Zitatprüfung, die nicht belegte Aussagen sichtbar macht. **Alles läuft lokal**: Kein Text verlässt den Rechner und es entstehen keine API-Kosten.
 
 > **Datengrundlage:** CaseLocal nutzt den Urteilsdatensatz von [Open Legal Data](https://openlegaldata.io) (Ostendorff, Blume & Ostendorff, 2020). Das Sammeln, Aufbereiten und offene Bereitstellen von über 400.000 Gerichtsentscheidungen ist ihre Arbeit, nicht meine. Herzlichen Dank dafür! Details und Zitat: [Datengrundlage und Dank](#datengrundlage-und-dank).
 
@@ -17,7 +17,7 @@ Recherche in den 10.000 bedeutendsten deutschen Gerichtsentscheidungen – mit h
   <tr>
     <td width="33%" valign="top">
       <a href="docs/screenshot2.png"><img src="docs/screenshot2.png" alt="Gegliederte Antwort mit Normen im Wortlaut und Fundstellen"></a><br>
-      <sub><b>Gegliederte Antwort:</b> Jede belegte Aussage ist geprüft. Normen lassen sich im Wortlaut aufklappen, rechts stehen die zitierten Urteile mit Randnummern.</sub>
+      <sub><b>Gegliederte Antwort</b> (Telefonbreite, wie die beiden folgenden): Jede belegte Aussage ist geprüft. Normen lassen sich im Wortlaut aufklappen, mit Stand und Link.</sub>
     </td>
     <td width="33%" valign="top">
       <a href="docs/screenshot3.png"><img src="docs/screenshot3.png" alt="Ablauf der Recherche mit Einzelprüfung jedes Urteils"></a><br>
@@ -98,8 +98,8 @@ Getestet auf: Windows 11, RTX 4080 Super (16 GB VRAM), 32 GB RAM.
 
 Voraussetzungen: [Python](https://www.python.org/downloads/) 3.11+ und [Ollama](https://ollama.com/download) sind installiert, und auf der [Datensatzseite](https://huggingface.co/datasets/openlegaldata/court-decisions-germany) sind die Zugangsbedingungen akzeptiert (kostenloser Hugging-Face-Account).
 
-1. **`setup.bat`** doppelklicken – einmalig. Legt die virtuelle Umgebung an, installiert die Bibliotheken, lädt die Modelle aus `config.py`, die Urteile und die meistzitierten Gesetze und baut den Suchindex. Fehlt etwas, erklärt das Skript, was zu tun ist; danach einfach erneut starten, Erledigtes wird übersprungen.
-2. **`start.bat`** doppelklicken – bei jeder Nutzung. Prüft, ob alles bereit ist, startet Ollama bei Bedarf und öffnet die App im Browser.
+1. **`setup.bat`** einmalig doppelklicken. Legt die virtuelle Umgebung an, installiert die Bibliotheken, lädt die Modelle aus `config.py`, die Urteile und die meistzitierten Gesetze und baut den Suchindex. Fehlt etwas, erklärt das Skript, was zu tun ist; danach einfach erneut starten, Erledigtes wird übersprungen.
+2. **`start.bat`** bei jeder Nutzung doppelklicken. Prüft, ob alles bereit ist, startet Ollama bei Bedarf und öffnet die App im Browser.
 
 ## Installation von Hand
 
@@ -140,7 +140,7 @@ Statt einer Zufallsstichprobe lädt CaseLocal gezielt die bedeutendsten Urteile 
 
 Alle Zahlen lassen sich in `config.py` ändern. Mit `DATENAUSWAHL = "stichprobe"` arbeitet CaseLocal wieder mit der Zufallsstichprobe.
 
-**Warum veraltete Urteile nicht einfach aussortiert werden:** Neuer heißt nicht maßgeblicher – eine BGH-Grundsatzentscheidung von 2005 kann heute noch die Linie bestimmen. Die herrschende Meinung steckt zudem vor allem in der Literatur, die im Datenbestand fehlt. Und „pro Rechtsfrage nur das Neueste“ setzt voraus, Rechtsfragen zuverlässig zu erkennen; beim Aussortieren verschwänden womöglich gerade die tragenden Entscheidungen. CaseLocal gewichtet deshalb, kennzeichnet und warnt, statt auszuschließen.
+**Warum veraltete Urteile nicht einfach aussortiert werden:** Neuer heißt nicht maßgeblicher: Eine BGH-Grundsatzentscheidung von 2005 kann heute noch die Linie bestimmen. Die herrschende Meinung steckt zudem vor allem in der Literatur, die im Datenbestand fehlt. Und „pro Rechtsfrage nur das Neueste“ setzt voraus, Rechtsfragen zuverlässig zu erkennen; beim Aussortieren verschwänden womöglich gerade die tragenden Entscheidungen. CaseLocal gewichtet deshalb, kennzeichnet und warnt, statt auszuschließen.
 
 ## Tests
 
@@ -253,4 +253,4 @@ series = {JCDL '20}
 - Der Zitationsgraph enthält keine Zitierungen von EuGH-Urteilen. Sie können deshalb keinen Bedeutungs-Score erhalten und sind in der Auswahl nicht vertreten. CaseLocal erkennt Verweise auf den EuGH, wertet dessen Entscheidungen aber nicht aus.
 - Der Datenbestand umfasst 10.000 von rund 424.000 Urteilen.
 
-**Hinweis:** Demo-Projekt, keine Rechtsberatung. KI-Zusammenfassungen können Fehler enthalten – maßgeblich ist immer der Urteilstext.
+**Hinweis:** Demo-Projekt, keine Rechtsberatung. KI-Zusammenfassungen können Fehler enthalten, maßgeblich ist immer der Urteilstext.

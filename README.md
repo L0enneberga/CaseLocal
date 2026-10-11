@@ -166,7 +166,7 @@ Die Tests prüfen die Bausteine, die ohne Daten und ohne Ollama funktionieren (d
 
 **Grenzen:**
 
-- **Wortlaut ist nicht Auslegung.** Aus dem Wortlaut von § 6 AGG allein wäre die Rechtsmissbrauchsfrage aus dem AGG-Beispiel nicht erkennbar. Rechtsauffassungen kommen deshalb nur aus Urteilen.
+- **Wortlaut ist nicht Auslegung.** Aus dem Wortlaut von § 535 BGB allein wäre nicht erkennbar, dass eine Renovierungsklausel bei unrenoviert übergebener Wohnung unwirksam ist (Beispiel in den Screenshots). Das folgt erst aus der BGH-Rechtsprechung zu § 307 BGB. Rechtsauffassungen kommen deshalb nur aus Urteilen.
 - **Heutige Fassung.** Ein Urteil von 2012 hat die damals geltende Fassung angewendet. Die App zeigt den heutigen Stand und sagt das bei jeder Norm. Historische Fassungen bietet gesetze-im-internet.de nicht.
 - **Nur Bundesrecht, nur die meistzitierten Gesetze.** Landesrecht und EU-Recht (DSGVO, Richtlinien) fehlen, ebenso seltener zitierte Bundesgesetze (`GESETZE_ANZAHL` in `config.py`).
 - **Konsolidierung mit Verzögerung.** gesetze-im-internet.de arbeitet Änderungen nicht immer sofort ein. Der angezeigte Stand macht das transparent.

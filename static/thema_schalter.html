@@ -1,0 +1,57 @@
+<!-- Schalter für helles und dunkles Design, rechts in der Kopfzeile (eingebunden in app.py).
+     Er benutzt Streamlits eigene Umschaltung aus dem Menü oben rechts (Light / Dark): So wechseln
+     alle Farben aus .streamlit/config.toml, und der Browser merkt sich die Wahl. Das Menü selbst
+     ist per CSS unsichtbar; das Skript öffnet es kurz und klickt auf das jeweils andere Design.
+     Welche Hälfte hervorgehoben ist, regelt allein das CSS (light-dark() in caselocal.css). -->
+<button class="cl-thema" type="button" title="Helles oder dunkles Design"
+        aria-label="Zwischen hellem und dunklem Design wechseln">
+  <span class="sonne" aria-hidden="true">light_mode</span>
+  <span class="mond" aria-hidden="true">dark_mode</span>
+</button>
+<script>
+(function () {
+  // Streamlit führt dieses Skript bei jedem Neuzeichnen der Seite erneut aus.
+  // Der Klick-Empfänger soll aber nur einmal angemeldet werden.
+  if (window.caselocalThemaSchalter) return;
+  window.caselocalThemaSchalter = true;
+
+  function istDunkel() {
+    // Streamlit setzt im dunklen Design die CSS-Eigenschaft color-scheme auf "dark".
+    return getComputedStyle(document.querySelector(".stApp")).colorScheme.includes("dark");
+  }
+
+  function warteAuf(finden) {
+    // Das Menü erscheint erst nach dem Klick. Bis zu einer Sekunde lang alle 25 ms nachsehen.
+    return new Promise(function (fertig) {
+      let versuche = 40;
+      const uhr = setInterval(function () {
+        const element = finden();
+        if (element || versuche-- <= 0) {
+          clearInterval(uhr);
+          fertig(element);
+        }
+      }, 25);
+    });
+  }
+
+  async function umschalten() {
+    const ziel = istDunkel() ? "Light" : "Dark";
+    document.body.classList.add("cl-wechselt");          // Menü während des Klicks verstecken
+    document.querySelector('[data-testid="stMainMenuButton"]').click();
+    const knopf = await warteAuf(function () {
+      return document.querySelector('[data-testid="stMainMenuItem-theme-' + ziel + '"]');
+    });
+    if (knopf) {
+      knopf.click();                                     // wählt das Design und schließt das Menü
+    }
+    setTimeout(function () { document.body.classList.remove("cl-wechselt"); }, 150);
+  }
+
+  // Ein Empfänger für die ganze Seite: Der Knopf selbst wird bei jedem Neuzeichnen ersetzt.
+  document.addEventListener("click", function (ereignis) {
+    if (ereignis.target.closest(".cl-thema")) {
+      umschalten();
+    }
+  });
+})();
+</script>

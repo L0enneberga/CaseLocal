@@ -49,6 +49,10 @@ Man stellt eine Rechtsfrage oder gibt Schlagworte ein und bekommt eine geglieder
 - **Was Code zuverlässiger kann, macht Code:** Gericht, Datum und Aktenzeichen kommen aus der Datenbank, erfundene Paragraphen werden markiert, EuGH-Bezüge erkannt. Bei Rechtsprechungsänderungen zeigt CaseLocal die Originalstelle, entscheidet aber bewusst nicht, welche Linie gilt.
 - **Gemessen statt behauptet:** 13 Testfragen mit erwartetem Leiturteil. Falsche Daten: 0 statt vorher 6, gestützte Aussagen: 88 % ([Messung](#messung))
 
+**Ablage**
+- **Akten:** Antworten mit ihren Fundstellen und einer eigenen Notiz in Akten ablegen, etwa je Mandat oder Thema. Die Seite „Meine Akten“ zeigt alles wieder, Notizen lassen sich ändern ([Akte](#akte))
+- **Getrennt vom Suchindex:** Die Akten liegen in einer eigenen Datenbank. Ein Neuaufbau des Index löscht keine Notizen
+
 ## Architektur
 
 ```
@@ -65,6 +69,8 @@ Frage ──► LLM: Suchbegriffe ──► hybride Suche ──► LLM: Einzelp
           Code: Gericht/Datum/Az. aus der Datenbank, Rechtsprechungsänderungen, Unionsrecht
                                                           │
                           Streamlit ◄── LLM: Zitatprüfung je Satz
+                              │
+                              └──► notizen.py ──► SQLite notizen.db (Akten, getrennt vom Index)
 ```
 
 | Datei | Aufgabe |
@@ -82,7 +88,11 @@ Frage ──► LLM: Suchbegriffe ──► hybride Suche ──► LLM: Einzelp
 | `belege.py` | Zerlegt die Antwort in Sätze, prüft Belege und Metadaten, markiert das Ergebnis |
 | `ergaenzung.py` | Ergänzt die Antwort per Code: Urteilskopf aus der Datenbank, Block zu Rechtsprechungsänderungen, Unionsrecht |
 | `abweichung.py` | Sucht neuere Urteile, die im Zusammenhang mit einem Treffer eine Rechtsprechungsänderung erörtern |
-| `app.py` | Weboberfläche (Streamlit) |
+| `app.py` | Einstieg der Weboberfläche (Streamlit): Kopfzeile und Navigation zwischen den Seiten |
+| `seiten/recherche.py` | Seite „Recherche“: Frage, Antwort, Fundstellen, Ablage in einer Akte |
+| `seiten/akten.py` | Seite „Meine Akten“: gespeicherte Recherchen lesen, Notizen ändern, Einträge löschen |
+| `notizen.py` | Akten und gespeicherte Recherchen in einer eigenen SQLite-Datei |
+| `static/` | Gestaltung (CSS, Schriften) und der Schalter für helles und dunkles Design |
 | `bewertung.py` | Misst die Qualität an den Testfragen in `tests/goldfragen.json` |
 | `tests/` | Automatische Tests (pytest), laufen bei jedem Push auf GitHub |
 
@@ -127,6 +137,29 @@ python schlagworte.py --anzahl 100   # 4. optional: KI-Schlagworte
 streamlit run app.py             # 5. App starten -> http://localhost:8501
 ```
 
+## Akte
+
+Unter jeder Antwort lässt sich die Recherche in einer Akte ablegen, zum Beispiel „Mandat Müller, Mietminderung“. Eine Akte wählt man über das Suchfeld oder legt sie mit „Neue Akte anlegen“ an. Sie bleibt gewählt, bis man eine andere wählt: So landen mehrere Fragen nacheinander in derselben Akte. Vor dem Speichern kann man eine Notiz zur Recherche schreiben.
+
+Gespeichert werden die Frage, die Antwort, die Fundstellen, die die Antwort zitiert, das verwendete Sprachmodell und die Notiz. Die Seite „Meine Akten“ zeigt die Einträge einer Akte, den neuesten zuerst. Dort lassen sich Notizen ändern und Einträge löschen.
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="docs/screenshot5.png"><img src="docs/screenshot5.png" alt="Antwort mit dem Bereich In Akte speichern"></a><br>
+      <sub><b>Ablage:</b> Akte wählen oder neu anlegen, Notiz schreiben, speichern.</sub>
+    </td>
+    <td width="50%" valign="top">
+      <a href="docs/screenshot6.png"><img src="docs/screenshot6.png" alt="Seite Meine Akten mit aufgeklapptem Eintrag"></a><br>
+      <sub><b>Meine Akten:</b> Frage, Antwort, Fundstellen und Notiz jedes Eintrags.</sub>
+    </td>
+  </tr>
+</table>
+
+**Warum eine eigene Datenbank:** Die Akten liegen in `daten/notizen.db`, getrennt von der Urteilsdatenbank. Wer den Suchindex mit einer anderen Auswahl neu baut, verliert so keine Notizen. Von jeder Fundstelle wird außerdem eine Kopie der Angaben gespeichert (Gericht, Datum, Aktenzeichen, Link), nicht nur ihre Nummer. Ein Eintrag bleibt dadurch lesbar, auch wenn das Urteil später nicht mehr im Bestand ist.
+
+**Öffentlich zeigen:** Alle, die dieselbe Installation nutzen, sehen dieselben Akten. Wer die App für andere freigibt, setzt in `config.py` `NOTIZEN_AKTIV = False`. Dann gibt es keine Ablage, und die Seite „Meine Akten“ zeigt nur einen Hinweis.
+
 ## Auswahl der Urteile
 
 Statt einer Zufallsstichprobe lädt CaseLocal gezielt die bedeutendsten Urteile aus dem Vollbestand. Dafür werden zuerst nur der Zitationsgraph und die Metadaten aller Urteile gelesen (rund 120 MB statt 10 GB), dann der Score berechnet und erst danach die Volltexte der Auswahl geladen.
@@ -149,7 +182,7 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-Die Tests prüfen die Bausteine, die ohne Daten und ohne Ollama funktionieren (die Qualität der KI-Antworten misst `bewertung.py`, siehe [Messung](#messung)): Bedeutungs-Score und Kontingente der Auswahl, Erkennen der Urteilsgliederung und Randnummern, Zerlegen in Abschnitte, FTS5-Anfragen, Filter und Rangfolge, Satzzerlegung und Markierung der Zitatprüfung, Vorauswahl für Rechtsprechungsänderungen, das Einsetzen und Korrigieren von Gericht, Datum und Aktenzeichen, der Block zu Rechtsprechungsänderungen und das Erkennen von Normzitaten und unionsrechtlichen Bezügen.
+Die Tests prüfen die Bausteine, die ohne Daten und ohne Ollama funktionieren (die Qualität der KI-Antworten misst `bewertung.py`, siehe [Messung](#messung)): Bedeutungs-Score und Kontingente der Auswahl, Erkennen der Urteilsgliederung und Randnummern, Zerlegen in Abschnitte, FTS5-Anfragen, Filter und Rangfolge, Satzzerlegung und Markierung der Zitatprüfung, Vorauswahl für Rechtsprechungsänderungen, das Einsetzen und Korrigieren von Gericht, Datum und Aktenzeichen, der Block zu Rechtsprechungsänderungen, das Erkennen von Normzitaten und unionsrechtlichen Bezügen sowie Anlegen, Speichern, Laden, Ändern und Löschen in der Akte (mit einer Wegwerf-Datenbank, nie mit der echten).
 
 ## Gesetzestexte
 

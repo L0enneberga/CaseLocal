@@ -5,7 +5,9 @@
 enableStaticServing = true
 
 [client]
-toolbarMode = "minimal"
+# "viewer": Das Menü oben rechts enthält die Umschaltung hell/dunkel. Es ist per CSS
+# unsichtbar und wird vom eigenen Schalter bedient (static/thema_schalter.html).
+toolbarMode = "viewer"
 
 [theme]
 font = "SourceSans, Segoe UI, sans-serif"

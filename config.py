@@ -24,6 +24,14 @@ _BESTAENDE = {
 SQLITE_PFAD = DATEN_ORDNER / _BESTAENDE[DATENAUSWAHL][0]   # Metadaten + Volltextindex
 CHROMA_SAMMLUNG = _BESTAENDE[DATENAUSWAHL][1]              # Name des Suchindex
 
+# --- Akte: gespeicherte Recherchen (notizen.py) ----------------------------
+# Eigene Datei, getrennt von der Urteilsdatenbank: Ein Neuaufbau des Index löscht keine Notizen.
+# Liegt in daten/ und wird deshalb wie die Urteile nicht auf GitHub hochgeladen.
+NOTIZEN_DB = DATEN_ORDNER / "notizen.db"
+# Auf False setzen, wenn die App öffentlich gezeigt wird (z. B. über Cloudflare Tunnel):
+# Alle Besucher würden sonst dieselbe Akte sehen und beschreiben.
+NOTIZEN_AKTIV = True
+
 # --- Datensatz (Open Legal Data auf Hugging Face) -------------------------
 DATENSATZ = "openlegaldata/court-decisions-germany"
 ZITATIONSGRAPH = "openlegaldata/legal-citation-graph-germany"

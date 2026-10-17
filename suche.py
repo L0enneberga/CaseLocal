@@ -73,6 +73,14 @@ def anzahl_urteile() -> int:
         return db.execute("SELECT COUNT(*) FROM urteile").fetchone()[0]
 
 
+def bestand_text() -> str:
+    """Der Bestand in Worten für Kopf- und Fußzeile, z. B. "10.000 von rund 424.000 Entscheidungen"."""
+    anzahl = f"{anzahl_urteile():,}".replace(",", ".")   # 10,000 -> 10.000
+    if config.DATENAUSWAHL == "stichprobe":
+        return f"{anzahl} Entscheidungen (Zufallsstichprobe)"
+    return f"{anzahl} von rund 424.000 Entscheidungen"
+
+
 def urteil_nach_aktenzeichen(aktenzeichen: str) -> dict | None:
     """Ein Urteil des Bestands mit genau diesem Aktenzeichen (ohne Volltext), sonst None."""
     with closing(_db()) as db:

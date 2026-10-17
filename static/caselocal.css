@@ -19,9 +19,15 @@ header[data-testid="stHeader"]{background:transparent}
 
 /* Kopfzeile */
 .cl-top{display:flex;align-items:center;gap:1rem;padding:.5rem 0 1rem;border-bottom:1px solid var(--cl-rule);font-size:.87rem;color:var(--cl-ink-3)}
-.cl-mark{display:flex;align-items:center;gap:.55rem;font:600 1.35rem/1 var(--cl-read);letter-spacing:-.015em;color:inherit}
+.cl-mark{display:flex;align-items:center;gap:.9rem;font:600 2.7rem/1 var(--cl-read);letter-spacing:-.02em;color:inherit}
 .cl-mark{color:light-dark(#151829,#ECEAE4)}
-.cl-mark i{width:11px;height:11px;margin:0 3px;background:var(--cl-lapis);transform:rotate(45deg)}
+/* Die Raute im Blau eines Lapislazuli: kräftiger als das Lapis der Bedienelemente, nur hier verwendet */
+.cl-mark i{width:21px;height:21px;margin:0 6px;background:light-dark(#2A3BEA,#4A5BF7);transform:rotate(45deg)}
+@media (max-width:640px){.cl-mark{font-size:1.9rem;gap:.7rem}.cl-mark i{width:15px;height:15px;margin:0 4px}}
+/* Schmalere Fenster: Modell und Bestand ausblenden, sonst bricht die Zeile neben dem großen Logo um.
+   Auf dem Handy rückt die Kopfzeile ein, damit das Menüsymbol links nicht über der Raute liegt. */
+@media (max-width:980px){.cl-status .cl-opt{display:none}}
+@media (max-width:736px){.cl-top{padding-left:2.4rem}}
 .cl-status{margin-left:auto;display:flex;align-items:center;gap:1rem;font-variant-numeric:tabular-nums}
 .cl-live{display:flex;align-items:center;gap:6px;color:var(--cl-ink-2)}
 .cl-live::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--cl-ok)}
@@ -113,3 +119,48 @@ header[data-testid="stHeader"]{background:transparent}
   .st-key-befund [data-testid="stMarkdownContainer"] :is(p,li){font-size:1.12rem}
   .cl-foot{grid-template-columns:minmax(0,1fr)}
 }
+
+/* Akte: die gewählte Akte im Bereich "In Akte speichern". Lapis nur als schmale Kante, weil
+   die Akte eine Auswahl ist; die Fläche bleibt weiß wie alles, was Eingaben enthält. */
+.cl-akte{display:flex;flex-direction:column;gap:.1rem;padding:.55rem .9rem;background:var(--cl-sheet);border:1px solid var(--cl-rule);border-left:3px solid var(--cl-lapis);border-radius:0 6px 6px 0}
+.cl-akte .cl-label{font-size:.8rem;font-weight:400;color:var(--cl-ink-3)}
+.cl-akte b{font:600 1.2rem/1.35 var(--cl-read);overflow-wrap:anywhere}
+.cl-akte.leer{border-left-color:var(--cl-rule)}
+.cl-akte.leer span:last-child{color:var(--cl-ink-3);font-style:italic}
+
+/* Aufklappbare Bereiche: Hinter jeder Beschriftung sitzt ein Pfeil nach unten.
+   Zugeklappt ist er Lapis, damit man auf einen Blick sieht, wo sich noch etwas öffnen lässt;
+   aufgeklappt wird er grau und dreht sich. Er ersetzt den blassen Standardpfeil von Streamlit,
+   eigene Symbole wie bei "Einstellungen" bleiben stehen. Der Pfeil ist ein Zeichen aus der
+   Symbolschrift, die Streamlit ohnehin lädt (st.html entfernt SVG). */
+[data-testid="stExpander"] summary{display:flex;align-items:center}
+[data-testid="stExpander"] summary > span{flex:0 1 auto;width:auto}
+[data-testid="stExpander"] summary > span > span:has(> [data-testid="stIconMaterial"]){display:none}
+[data-testid="stExpander"] summary::after{content:"expand_more";flex:none;display:grid;place-items:center;width:22px;height:22px;margin-left:.45rem;font:400 20px/1 "Material Symbols Rounded";font-feature-settings:"liga";color:var(--cl-lapis);transition:transform .2s ease,color .2s ease}
+[data-testid="stExpander"] details[open] > summary::after{transform:rotate(180deg);color:var(--cl-ink-3)}
+@media (prefers-reduced-motion:reduce){[data-testid="stExpander"] summary::after{transition:none}}
+
+/* Seitenleiste: Statt der Doppelpfeile « und » ein Menüsymbol (Punkte mit Balken), etwas größer
+   und immer sichtbar (Streamlit zeigt den Knopf zum Einklappen sonst nur beim Darüberfahren).
+   Das Symbol ist ein Zeichen der Symbolschrift; der ursprüngliche Pfeil wird nur ausgeblendet. */
+[data-testid="stSidebarCollapseButton"]{display:block!important;visibility:visible!important;opacity:1!important}
+/* Der ganze Knopf rückt nach unten (nicht nur das Symbol), damit die graue Fläche beim Darüberfahren
+   mitwandert. 17 px: auf Höhe des Schriftzugs CaseLocal, optisch eine Spur höher als die rechnerische Mitte */
+[data-testid="stExpandSidebarButton"],[data-testid="stSidebarCollapseButton"] button{transform:translateY(17px)}
+[data-testid="stSidebarNav"]{padding-top:1rem}           /* Abstand zwischen Menüsymbol und Seitenliste */
+@media (max-width:640px){[data-testid="stExpandSidebarButton"],[data-testid="stSidebarCollapseButton"] button{transform:translateY(11px)}}
+:is([data-testid="stSidebarCollapseButton"],[data-testid="stExpandSidebarButton"]) [data-testid="stIconMaterial"]{font-size:0!important;width:28px;height:28px}
+:is([data-testid="stSidebarCollapseButton"],[data-testid="stExpandSidebarButton"]) [data-testid="stIconMaterial"]::before{content:"format_list_bulleted";display:block;font:400 28px/1 "Material Symbols Rounded";font-feature-settings:"liga";color:light-dark(#151829,#ECEAE4);transition:color .15s ease}
+:is([data-testid="stSidebarCollapseButton"],[data-testid="stExpandSidebarButton"]):hover [data-testid="stIconMaterial"]::before{color:var(--cl-lapis)}
+
+/* Schalter hell/dunkel rechts in der Kopfzeile (static/thema_schalter.html). Zwei Hälften mit Sonne und
+   Mond; die zum aktuellen Design passende Hälfte ist ausgefüllt. light-dark() wählt dafür je nach
+   Design die eine oder die andere Farbe, so braucht die Anzeige kein JavaScript. */
+[data-testid="stMainMenu"]{visibility:hidden}
+body.cl-wechselt [data-baseweb="popover"]{opacity:0!important}
+.cl-thema{position:relative;z-index:1000000;flex:none;display:flex;gap:2px;padding:2px;border:1px solid var(--cl-rule);border-radius:999px;background:var(--cl-sheet);cursor:pointer}
+.cl-thema span{display:grid;place-items:center;width:28px;height:24px;border-radius:999px;font:400 17px/1 "Material Symbols Rounded";font-feature-settings:"liga";transition:background-color .25s ease,color .25s ease}
+.cl-thema .sonne{background:light-dark(var(--cl-lapis),transparent);color:light-dark(#FFFFFF,var(--cl-ink-3))}
+.cl-thema .mond{background:light-dark(transparent,var(--cl-lapis));color:light-dark(var(--cl-ink-3),#14111F)}
+.cl-thema:hover{border-color:var(--cl-lapis)}
+.cl-thema:focus-visible{outline:2px solid var(--cl-lapis);outline-offset:2px}

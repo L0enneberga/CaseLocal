@@ -348,7 +348,7 @@ A distilled sibling of the main design. It uses the same grammar, the same statu
 
 ### Lapis in der Streamlit-App
 
-`app.py` übernimmt die Variante Lapis. Farben, Radien und Schriften stehen in `.streamlit/config.toml`, und zwar getrennt für `[theme.light]` und `[theme.dark]`. Alles, was das Theme nicht abdeckt, steht in `static/caselocal.css`. Die CSS-Regeln greifen über `st-key-*`-Klassen und Theme-Farben mit `light-dark()`. Die Schriften liegen lokal in `static/fonts`.
+`app.py` und die beiden Seiten in `seiten/` übernehmen die Variante Lapis. Farben, Radien und Schriften stehen in `.streamlit/config.toml`, und zwar getrennt für `[theme.light]` und `[theme.dark]`. Alles, was das Theme nicht abdeckt, steht in `static/caselocal.css`. Die CSS-Regeln greifen über `st-key-*`-Klassen und Theme-Farben mit `light-dark()`. Die Schriften liegen lokal in `static/fonts`.
 
 Grenzen von Streamlit:
 - `st.html` entfernt SVG. Raute, Haken und Stift sind deshalb mit CSS-Masken gezeichnet, die Prüfmarken mit `border` und `background`.

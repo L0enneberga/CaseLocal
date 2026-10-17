@@ -1,5 +1,11 @@
 """Tests für die Zitatprüfung (ohne Sprachmodell)."""
-from belege import aussagen_finden, gesamturteil, markieren, quellen, saetze_teilen, zusammenfassung
+from belege import aussagen_finden, gesamturteil, markieren, quellen, saetze_teilen, ueberschriften, zusammenfassung
+
+
+def test_ueberschriften():
+    antwort = "**1. Kurzantwort**\nNein [1].\n**4. Abweichende Entscheidungen**\nKeine."
+    assert ueberschriften(antwort) == "\nNein [1].\n\n#### Abweichende Entscheidungen\n\nKeine."
+    assert ueberschriften(antwort, kurzantwort_zeigen=True).startswith("\n#### Kurzantwort\n")
 
 
 def test_quellen():

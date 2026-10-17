@@ -77,6 +77,17 @@ def saetze_teilen(text: str) -> list[str]:
     return saetze
 
 
+def ueberschriften(antwort: str, kurzantwort_zeigen: bool = False) -> str:
+    """Macht aus den fetten Abschnittsköpfen ("**2. Einschlägige Normen**") echte Überschriften
+    ohne Nummer. Auf der Seite "Recherche" setzt die Seite den Kopf "Kurzantwort" selbst, dort
+    fällt er weg. Auf der Seite "Meine Akten" bleibt er stehen (kurzantwort_zeigen=True)."""
+    def ersetzen(m: re.Match) -> str:
+        if m[1] == "1" and not kurzantwort_zeigen:
+            return ""
+        return f"\n#### {m[2].strip()}\n"
+    return re.sub(r"(?m)^\s*(?:#{1,6}\s*\**|\*\*)\s*(\d)\.\s*([^*\n]+?)\**\s*$", ersetzen, antwort)
+
+
 def abschnitte(zeilen: list[str]) -> list[int]:
     """Nummer des Abschnitts, in dem jede Zeile steht (0 = vor dem ersten Abschnitt)."""
     aktuell, ergebnis = 0, []

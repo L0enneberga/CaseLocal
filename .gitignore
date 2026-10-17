@@ -15,3 +15,7 @@ Thumbs.db
 
 # Design-Werkzeug: Arbeits-Screenshots
 .impeccable/review/
+
+# Lokale Arbeitsdateien für KI-Werkzeuge - nicht hochladen
+CLAUDE.md
+docs/agents/

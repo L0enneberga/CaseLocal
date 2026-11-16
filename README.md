@@ -36,7 +36,7 @@ Man stellt eine Rechtsfrage oder gibt Schlagworte ein und bekommt eine geglieder
 
 **Recherche**
 - **Die 10.000 bedeutendsten Urteile** aus rund 424.000, ausgewählt über den Zitationsgraphen von Open Legal Data ([Auswahl](#auswahl-der-urteile))
-- **Hybride Suche** aus Volltext und Bedeutung, entlang der Urteilsgliederung: Die Gründe zählen mehr als der Parteivortrag
+- **Hybride Suche** aus Volltext und Bedeutung, entlang der Urteilsgliederung: Die Gründe zählen mehr als der Parteivortrag. Filter nach Gerichtsbarkeit und Zeitraum gelten für beide Teilsuchen
 - **Gesetzestexte im Wortlaut** für die 100 meistzitierten Bundesgesetze, mit Stand ([Gesetzestexte](#gesetzestexte))
 
 **Antwort**
@@ -47,11 +47,12 @@ Man stellt eine Rechtsfrage oder gibt Schlagworte ein und bekommt eine geglieder
 **Kontrolle**
 - **Zitatprüfung:** Jeder Satz wird gegen das zitierte Urteil geprüft und als gestützt, teilweise oder nicht gestützt markiert
 - **Was Code zuverlässiger kann, macht Code:** Gericht, Datum und Aktenzeichen kommen aus der Datenbank, erfundene Paragraphen werden markiert, EuGH-Bezüge erkannt. Bei Rechtsprechungsänderungen zeigt CaseLocal die Originalstelle, entscheidet aber bewusst nicht, welche Linie gilt.
-- **Gemessen statt behauptet:** 13 Testfragen mit erwartetem Leiturteil. Falsche Daten: 0 statt vorher 6, gestützte Aussagen: 88 % ([Messung](#messung))
+- **Gemessen statt behauptet:** 13 Testfragen mit erwartetem Leiturteil. Falsche Daten: 0 statt vorher 6, Leiturteil gefunden und zitiert: 13 von 13, gestützte Aussagen: 94 % ([Messung](#messung))
 
 **Ablage**
 - **Akten:** Antworten mit ihren Fundstellen und einer eigenen Notiz in Akten ablegen, etwa je Mandat oder Thema. Die Seite „Meine Akten“ zeigt alles wieder, Notizen lassen sich ändern ([Akte](#akte))
 - **Getrennt vom Suchindex:** Die Akten liegen in einer eigenen Datenbank. Ein Neuaufbau des Index löscht keine Notizen
+- **Zum Mitnehmen:** Eine Akte lässt sich als Markdown-Datei speichern, mit Quellen, Links und Notizen
 
 ## Architektur
 
@@ -137,11 +138,13 @@ python schlagworte.py --anzahl 100   # 4. optional: KI-Schlagworte
 streamlit run app.py             # 5. App starten -> http://localhost:8501
 ```
 
+Fehlen Urteile oder Suchindex noch, zeigt die App statt der Suche einen Hinweis mit diesen Schritten. Beim Start lädt sie beide Modelle im Hintergrund und hält sie nach der letzten Frage 30 Minuten im Speicher (`MODELL_BEREITHALTEN` in `config.py`). Ohne das wartet die erste Frage auf das Laden des Sprachmodells, je nach Rechner zehn Sekunden bis über eine Minute, und Ollama würde es nach 5 Minuten Pause wieder entladen.
+
 ## Akte
 
 Unter jeder Antwort lässt sich die Recherche in einer Akte ablegen, zum Beispiel „Mandat Müller, Mietminderung“. Eine Akte wählt man über das Suchfeld oder legt sie mit „Neue Akte anlegen“ an. Sie bleibt gewählt, bis man eine andere wählt: So landen mehrere Fragen nacheinander in derselben Akte. Vor dem Speichern kann man eine Notiz zur Recherche schreiben.
 
-Gespeichert werden die Frage, die Antwort, die Fundstellen, die die Antwort zitiert, das verwendete Sprachmodell und die Notiz. Die Seite „Meine Akten“ zeigt die Einträge einer Akte, den neuesten zuerst. Dort lassen sich Notizen ändern und Einträge löschen.
+Gespeichert werden die Frage, die Antwort, die Fundstellen, die die Antwort zitiert, das verwendete Sprachmodell und die Notiz. Die Seite „Meine Akten“ zeigt die Einträge einer Akte, den neuesten zuerst. Dort lassen sich Notizen ändern und Einträge löschen. Mit „Als Markdown“ speichert man die ganze Akte als Textdatei: Fragen, Antworten, Quellen mit Link zum Volltext und Notizen, lesbar ohne CaseLocal.
 
 <table>
   <tr>
@@ -180,9 +183,12 @@ Alle Zahlen lassen sich in `config.py` ändern. Mit `DATENAUSWAHL = "stichprobe"
 ```bash
 pip install -r requirements-dev.txt
 pytest
+ruff check .                     # unbenutzte Importe, unbekannte Namen, Syntaxfehler
 ```
 
-Die Tests prüfen die Bausteine, die ohne Daten und ohne Ollama funktionieren (die Qualität der KI-Antworten misst `bewertung.py`, siehe [Messung](#messung)): Bedeutungs-Score und Kontingente der Auswahl, Erkennen der Urteilsgliederung und Randnummern, Zerlegen in Abschnitte, FTS5-Anfragen, Filter und Rangfolge, Satzzerlegung und Markierung der Zitatprüfung, Vorauswahl für Rechtsprechungsänderungen, das Einsetzen und Korrigieren von Gericht, Datum und Aktenzeichen, der Block zu Rechtsprechungsänderungen, das Erkennen von Normzitaten und unionsrechtlichen Bezügen sowie Anlegen, Speichern, Laden, Ändern und Löschen in der Akte (mit einer Wegwerf-Datenbank, nie mit der echten).
+Die Tests prüfen die Bausteine, die ohne Daten und ohne Ollama funktionieren (die Qualität der KI-Antworten misst `bewertung.py`, siehe [Messung](#messung)): Bedeutungs-Score und Kontingente der Auswahl, Erkennen der Urteilsgliederung und Randnummern, Zerlegen in Abschnitte, FTS5-Anfragen, Filter und Rangfolge, die Bedeutungssuche mit Filter (ChromaDB ist durch eine Attrappe ersetzt), Satzzerlegung und Markierung der Zitatprüfung, Vorauswahl für Rechtsprechungsänderungen, das Einsetzen und Korrigieren von Gericht, Datum und Aktenzeichen, der Block zu Rechtsprechungsänderungen, das Erkennen von Normzitaten und unionsrechtlichen Bezügen, das Retten abgeschnittener Antworten des Sprachmodells sowie Anlegen, Speichern, Laden, Ändern, Löschen und Exportieren in der Akte (mit einer Wegwerf-Datenbank, nie mit der echten). Ein weiterer Test startet die Oberfläche ohne Daten und prüft, dass sie einen Hinweis zur Einrichtung zeigt.
+
+Auf GitHub laufen Tests und Linter bei jedem Push unter Linux (Python 3.11 und 3.14) und unter Windows (Python 3.12).
 
 ## Gesetzestexte
 
@@ -215,6 +221,7 @@ Gesetze sind nach § 5 UrhG gemeinfrei. Wie die Urteile sind die Gesetzestexte n
 ```bash
 python bewertung.py --name nachher                          # alle Fragen
 python bewertung.py --name denken --denken-pruefung ja      # mit Denkmodus in den Prüfschritten
+python bewertung.py --name suche --nur-suche                # nur die Suche: Rang des Leiturteils, wenige Sekunden
 ```
 
 | Stand | Leiturteil unter den Top 5 | Leiturteil zitiert | Falsches Datum oder Az. | Aussagen gestützt | teilweise | nicht gestützt | Dauer je Frage |
@@ -222,7 +229,8 @@ python bewertung.py --name denken --denken-pruefung ja      # mit Denkmodus in d
 | Vorher | 10/13 | 11/13 | 6 | 93 % (114/122) | 3 | 5 | 30 s |
 | Nach Fehlerbehebung (Metadaten, strengere Zitatprüfung, Abschnitt 4 und Unionsrecht per Code) | 10/13 | 11/13 | **0** | 85 % (87/102) | 11 | 4 | 27 s |
 | Zusätzlich Denkmodus in den Prüfschritten | 10/13 | 11/13 | 0 | 61 % (60/99) | 18 | 7 | 180 s |
-| Zusätzlich Gesetzestexte im Material und in der Zitatprüfung (ohne Denkmodus) | 10/13 | 11/13 | 0 | **88 %** (99/113) | 11 | 3 | 28 s |
+| Zusätzlich Gesetzestexte im Material und in der Zitatprüfung (ohne Denkmodus) | 10/13 | 11/13 | 0 | 88 % (99/113) | 11 | 3 | 28 s |
+| Zusätzlich Wörter der Frage in der Schlagwortsuche, tiefere Teillisten, Obergrenze für Antwortlängen | **13/13** | **13/13** | 0 | **94 %** (102/109) | 3 | 4 | 26 s |
 
 So sind die Zahlen zu lesen:
 
@@ -230,7 +238,9 @@ So sind die Zahlen zu lesen:
 - **Weniger „gestützt“ heißt hier strenger, nicht schlechter:** Ein Satz mit mehreren Quellen gilt jetzt nur noch als gestützt, wenn alle ihn tragen. Hinweissätze werden nicht mehr mitgezählt. Die zusätzlichen „teilweise“ betreffen meist Normen-Stichpunkte, die mehr Urteile zitieren als nötig.
 - **Denkmodus:** Für einen fairen Vergleich wurden dieselben Antworten einmal mit und einmal ohne Denkmodus geprüft (109 Sätze). 77 Sätze wurden in beiden Läufen gleich bewertet. 19 blieben mit Denkmodus ohne Ergebnis, weil das Modell sich bei langen Urteilen über 14.000 Tokens festdachte und das Kontextfenster füllte. Nur 3 Sätze wurden inhaltlich strenger bewertet, davon einer zu Recht. Bei 13-facher Rechenzeit bleibt der Denkmodus deshalb aus (`config.DENKEN_PRUEFUNG`).
 - **Gesetzestexte:** Drei Läufe direkt hintereinander: ohne Gesetzestexte 84 % gestützt, mit Wortlaut nur im Material 81 %, mit Wortlaut auch in der Zitatprüfung 88 %. Der Zwischenschritt zeigt eine Lücke: Mit dem Gesetz vor Augen beschreibt das Modell Normen aus dem Wortlaut („§ 15 Abs. 2 AGG – Anspruch auf Entschädigung“). Die Zitatprüfung sah aber nur das Urteil und wertete das als „teilweise“. Seit sie den Wortlaut mitbekommt, prüft sie, ob das Urteil die Norm in diesem Zusammenhang heranzieht. Die Dauer bleibt gleich (28 s je Frage), das Modell läuft laut `ollama ps` weiter zu 100 % auf der GPU.
-- **Suche:** Bei den beiden Fragen zum Urlaubsrecht landet das erwartete Leiturteil nur auf Platz 8 und 9. Davor stehen neuere Entscheidungen desselben Senats, die die Linie fortführen.
+- **Suche:** Die Suchbegriffe des Modells fallen nicht bei jedem Lauf gleich aus, der Rang des Leiturteils schwankt deshalb. Für den Vergleich von Suchvarianten wurden je Frage drei Sätze Suchbegriffe festgehalten (39 Läufe). Im Stand der Tabelle stand das Leiturteil in 33 von 39 Läufen unter den Top 5 und in 35 unter den sechs Treffern, die das Modell auswertet; bei den beiden Fragen zum Urlaubsrecht lag es auf Platz 6 bis 9, hinter neueren Entscheidungen desselben Senats. Seit die Schlagwortsuche auch die Wörter der Frage nutzt (`FRAGEWOERTER_MITSUCHEN`) und je Teilsuche 50 statt 20 Urteile in die Rangfolge eingehen (`FUSION_TIEFE`), sind es 37 und 39 von 39, in keinem Lauf steht es schlechter als vorher. In der ganzen Kette erreichen damit alle 13 Leiturteile das Modell und werden zitiert; ein zweiter Lauf direkt danach bestätigt die letzte Zeile der Tabelle (13/13, 13/13, 95 % gestützt bei 108/114, 26 s). Einschränkung: Die Variante wurde an denselben 13 Fragen ausgewählt, an denen sie gemessen ist.
+- **Filter:** Mit einem Filter lieferte die Bedeutungssuche früher oft nur 0 bis 5 Urteile, weil sie erst nach der Suche filterte. Jetzt sucht sie weiter, bis genug passende Urteile da sind (Beispiel Finanzgerichtsbarkeit: 16 statt 0, unter 1,5 s).
+- **Schleifen:** Gelegentlich wiederholt das Modell in einer JSON-Antwort endlos dieselbe Zahl, bis das Kontextfenster voll ist (beobachtet: 14.625 Tokens, 75 s, das Urteil wurde danach ohne Begründung aussortiert). Antworten sind deshalb in der Länge begrenzt (`JSON_MAX_TOKENS`), und aus einer abgeschnittenen Antwort wird übernommen, was vollständig ist. Derselbe Fall dauert jetzt 8 s und behält seine Bewertung.
 
 Die Antworten sind nicht deterministisch, einzelne Werte schwanken zwischen zwei Läufen. Die vollständigen Antworten jedes Laufs speichert `bewertung.py` in `daten/bewertung/`.
 

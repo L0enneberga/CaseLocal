@@ -98,24 +98,87 @@ Lies den Anfang des Urteils und antworte ausschließlich als JSON:
  "kurzfassung": "1 bis 2 Sätze: Worum ging es, wie wurde entschieden?"}"""
 
 
+def json_retten(text: str) -> dict:
+    """Rettet aus einer abgeschnittenen JSON-Antwort alles bis zum letzten vollständigen Eintrag.
+
+    '{"relevant": false, "begruendung": "passt nicht", "randnummern": [18, 18, 18'
+      ->  {"relevant": False, "begruendung": "passt nicht", "randnummern": [18, 18]}
+    Die Funktion merkt sich an jedem Komma, welche Klammern gerade offen sind. Dann schneidet
+    sie am letzten Komma ab, schließt die Klammern und versucht es erneut. Nichts zu retten: {}.
+    """
+    offen, im_text, maskiert, schnitte = [], False, False, []
+    for i, zeichen in enumerate(text):
+        if im_text:                                    # innerhalb von "..." zählen Klammern nicht
+            if maskiert:
+                maskiert = False
+            elif zeichen == "\\":
+                maskiert = True
+            elif zeichen == '"':
+                im_text = False
+        elif zeichen == '"':
+            im_text = True
+        elif zeichen in "{[":
+            offen.append("}" if zeichen == "{" else "]")
+        elif zeichen in "}]" and offen:
+            offen.pop()
+        elif zeichen == "," and offen:
+            schnitte.append((i, "".join(reversed(offen))))
+    for i, schluss in reversed(schnitte[-50:]):
+        try:
+            daten = json.loads(text[:i] + schluss)
+        except json.JSONDecodeError:
+            continue
+        return daten if isinstance(daten, dict) else {}
+    return {}
+
+
 def json_chat(system: str, nutzer: str, denken: bool = False) -> dict:
     """Hilfsfunktion: fragt das LLM und erzwingt eine JSON-Antwort.
 
     denken=True schaltet den Denkmodus ein (für Prüfaufgaben, siehe config.DENKEN_PRUEFUNG).
+
+    Die Länge der Antwort ist begrenzt (config.JSON_MAX_TOKENS): Gelegentlich gerät das Modell
+    in eine Schleife ("18, 18, 18, ...") und schreibt, bis das Kontextfenster voll ist. Das
+    dauerte über eine Minute und ergab ungültiges JSON. Jetzt endet es nach wenigen Sekunden,
+    und json_retten verwendet, was bis dahin vollständig war. Im Denkmodus gilt die Grenze
+    nicht, weil dort auch die Gedanken mitzählen.
     """
+    optionen = {"temperature": 0, "num_ctx": config.LLM_KONTEXT}
+    if not denken:
+        optionen["num_predict"] = config.JSON_MAX_TOKENS
     antwort = ollama.chat(
         model=config.LLM_MODELL,
         messages=[{"role": "system", "content": system},
                   {"role": "user", "content": nutzer}],
         format="json",                                  # Ollama erzwingt gültiges JSON
-        options={"temperature": 0, "num_ctx": config.LLM_KONTEXT},
+        options=optionen,
         think=denken,
+        keep_alive=config.MODELL_BEREITHALTEN,
     )
+    inhalt = antwort["message"]["content"]
     try:
-        daten = json.loads(antwort["message"]["content"])
+        daten = json.loads(inhalt)
     except json.JSONDecodeError:
-        return {}
+        return json_retten(inhalt)
     return daten if isinstance(daten, dict) else {}
+
+
+def vorladen() -> bool:
+    """Lädt beide Modelle in den Speicher, ohne Text zu erzeugen (app.py ruft das beim Start auf).
+
+    Ohne das wartet die erste Frage auf das Laden des Sprachmodells: je nach Rechner zehn
+    Sekunden bis über eine Minute. num_ctx muss dem Wert der späteren Aufrufe entsprechen,
+    sonst lädt Ollama das Modell bei der ersten Frage noch einmal.
+    Ergebnis: False, wenn Ollama nicht erreichbar ist oder ein Modell fehlt. Das meldet dann
+    die erste Recherche, hier bleibt es still.
+    """
+    try:
+        ollama.embed(model=config.EMBED_MODELL, input="Start", keep_alive=config.MODELL_BEREITHALTEN)
+        ollama.generate(model=config.LLM_MODELL, options={"num_ctx": config.LLM_KONTEXT},
+                        keep_alive=config.MODELL_BEREITHALTEN)
+    except (ConnectionError, ollama.ResponseError):
+        return False
+    return True
 
 
 def frage_zu_schlagworten(frage: str) -> list[str]:
@@ -127,8 +190,9 @@ def frage_zu_schlagworten(frage: str) -> list[str]:
 # --- Material für das LLM ---------------------------------------------------
 
 def datum_deutsch(iso: str) -> str:
-    """"2016-08-11" -> "11.08.2016" """
-    jahr, monat, tag = (iso or "").split("-") if (iso or "").count("-") == 2 else ("", "", "")
+    """"2016-08-11" -> "11.08.2016"; alles andere bleibt, wie es ist (ein fehlendes Datum wird "")."""
+    iso = iso or ""
+    jahr, monat, tag = iso.split("-") if iso.count("-") == 2 else ("", "", "")
     return f"{tag}.{monat}.{jahr}" if jahr else iso
 
 
@@ -192,11 +256,14 @@ def pruefung_bereinigen(daten: dict) -> dict:
     randnummern = []
     for rn in daten.get("randnummern") or []:
         ziffern = "".join(z for z in str(rn) if z.isdigit())
-        if ziffern:
+        if ziffern and int(ziffern) not in randnummern:   # jede Randnummer nur einmal
             randnummern.append(int(ziffern))
+    begruendung = str(daten.get("begruendung") or "").strip()
+    if not daten:                                      # nichts Verwertbares: nicht stillschweigend aussortieren
+        begruendung = "Das Sprachmodell hat keine verwertbare Bewertung geliefert, das Urteil wurde nicht ausgewertet."
     return {
         "relevant": bool(relevant),
-        "begruendung": str(daten.get("begruendung") or "").strip(),
+        "begruendung": begruendung,
         "entscheidung": str(daten.get("entscheidung") or "").strip(),
         "rechtssatz": str(daten.get("rechtssatz") or "").strip(),
         "normen": [str(n).strip() for n in daten.get("normen") or [] if str(n).strip()],
@@ -292,8 +359,11 @@ def antwort_streamen(frage: str, treffer: list[dict], pruefungen: dict[int, dict
         model=config.LLM_MODELL,
         messages=[{"role": "system", "content": PROMPT_ANTWORT},
                   {"role": "user", "content": nachricht}],
-        options={"temperature": 0.2, "num_ctx": config.LLM_KONTEXT},
+        options={"temperature": 0.2, "num_ctx": config.LLM_KONTEXT,
+                 # Obergrenze gegen Endlosschleifen, siehe json_chat. Im Denkmodus zählen die Gedanken mit.
+                 **({} if config.DENKEN_ANTWORT else {"num_predict": config.ANTWORT_MAX_TOKENS})},
         think=config.DENKEN_ANTWORT,
+        keep_alive=config.MODELL_BEREITHALTEN,
         stream=True,
     ):
         yield stueck["message"]["content"]

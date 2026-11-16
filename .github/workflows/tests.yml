@@ -4,12 +4,25 @@ on: [push, pull_request]
 
 jobs:
   pytest:
-    runs-on: ubuntu-latest
+    # Älteste unterstützte und neueste Python-Version unter Linux, dazu Windows:
+    # Dort läuft CaseLocal im Alltag (setup.bat, start.bat).
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-latest, python: "3.11"}
+          - {os: ubuntu-latest, python: "3.14"}
+          - {os: windows-latest, python: "3.12"}
+    runs-on: ${{ matrix.os }}
+    name: pytest (${{ matrix.os }}, Python ${{ matrix.python }})
+    env:
+      PYTHONUTF8: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python }}
           cache: pip
       - run: pip install -r requirements-dev.txt
+      - run: ruff check .
       - run: pytest -v

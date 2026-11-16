@@ -18,4 +18,5 @@ Thumbs.db
 
 # Lokale Arbeitsdateien für KI-Werkzeuge - nicht hochladen
 CLAUDE.md
+.claude/
 docs/agents/

@@ -112,3 +112,27 @@ def test_quelle_text():
 def test_zeitpunkt_deutsch():
     assert notizen.zeitpunkt_deutsch("2026-10-17T14:44:00") == "17.10.2026, 14:44"
     assert notizen.zeitpunkt_deutsch("unbekannt") == "unbekannt"
+
+
+# --- Export als Markdown ----------------------------------------------------------
+
+def test_akte_markdown_enthaelt_frage_antwort_quellen_und_notiz(pfad):
+    speichern(pfad, frage="Schönheitsreparaturen?", notiz="für Montag")
+    text = notizen.akte_markdown("Mietrecht", notizen.eintraege_laden("Mietrecht", pfad=pfad))
+    assert text.startswith("# Akte: Mietrecht\n")
+    assert "## Schönheitsreparaturen?" in text
+    assert "Nach den Urteilen nein [2]." in text
+    assert ("- [2] Bundesgerichtshof, 18.03.2015, Az. VIII ZR 185/14 – "
+            "<https://de.openlegaldata.io/case/bgh-2015-03-18-viii-zr-18514>") in text
+    assert "**Notiz**\n\nfür Montag" in text
+    assert "keine Rechtsberatung" in text               # der Hinweis wandert mit aus der App
+
+
+def test_akte_markdown_ohne_notiz_hat_keinen_notizblock(pfad):
+    speichern(pfad)
+    assert "**Notiz**" not in notizen.akte_markdown("Mietrecht", notizen.eintraege_laden(pfad=pfad))
+
+
+def test_dateiname_ohne_sonderzeichen():
+    assert notizen.dateiname("Mandat Müller, Mietminderung") == "Akte_Mandat_Müller_Mietminderung.md"
+    assert notizen.dateiname("../?") == "Akte_ohne_Namen.md"

@@ -12,6 +12,7 @@ getrennt von der Urteilsdatenbank: Ein Neuaufbau des Suchindex löscht so keine 
   notiz_aendern      - ändert die Notiz eines Eintrags
   eintrag_loeschen   - löscht einen Eintrag
   quelle_text        - eine Quelle als Zeile, z. B. "[2] Bundesgerichtshof, 18.03.2015, Az. VIII ZR 185/14"
+  akte_markdown      - eine ganze Akte als Markdown-Text (Export von der Seite "Meine Akten")
 
 Alle Funktionen nehmen einen optionalen Pfad, damit die Tests mit einer
 Wegwerf-Datenbank arbeiten können statt mit der echten.
@@ -126,6 +127,41 @@ def zeitpunkt_deutsch(iso: str) -> str:
         return datetime.fromisoformat(iso).strftime("%d.%m.%Y, %H:%M")
     except ValueError:                                 # unbekanntes Format: unverändert zeigen
         return iso
+
+
+def eintrag_markdown(eintrag: dict) -> str:
+    """Ein Eintrag als eigenständiger Markdown-Text, z. B. für einen Vermerk oder das Archiv.
+
+    Enthält Frage, Antwort, Quellen mit Link zum Volltext, die Notiz und den Hinweis,
+    dass die Antwort KI-generiert ist. Die Antwort ist bereits Markdown und bleibt unverändert.
+    """
+    teile = [f"## {eintrag['frage']}",
+             f"Gespeichert am {zeitpunkt_deutsch(eintrag['erstellt_am'])} · "
+             f"Modell: {eintrag.get('modell') or 'unbekannt'}",
+             eintrag["antwort"].strip()]
+    quellen = []
+    for q in eintrag.get("quellen") or []:
+        link = f" – <https://de.openlegaldata.io/case/{q['slug']}>" if q.get("slug") else ""
+        quellen.append(f"- {quelle_text(q)}{link}")
+    if quellen:
+        teile.append("**Quellen**\n\n" + "\n".join(quellen))
+    if (eintrag.get("notiz") or "").strip():
+        teile.append("**Notiz**\n\n" + eintrag["notiz"].strip())
+    return "\n\n".join(teile)
+
+
+def akte_markdown(akte: str, eintraege: list[dict]) -> str:
+    """Eine ganze Akte als Markdown-Datei: alle Einträge in der übergebenen Reihenfolge."""
+    kopf = (f"# Akte: {akte}\n\n"
+            "Recherchen mit CaseLocal. Die Antworten sind KI-generiert und keine Rechtsberatung, "
+            "maßgeblich ist immer der Urteilstext.")
+    return "\n\n---\n\n".join([kopf] + [eintrag_markdown(e) for e in eintraege]) + "\n"
+
+
+def dateiname(akte: str) -> str:
+    """Ein Dateiname für den Export: "Mandat Müller, Mietminderung" -> "Akte_Mandat_Müller_Mietminderung.md"."""
+    sauber = "_".join("".join(z if z.isalnum() else " " for z in akte).split())
+    return f"Akte_{sauber or 'ohne_Namen'}.md"
 
 
 def eintrag_speichern(akte: str, frage: str, antwort: str, quellen: list[dict],

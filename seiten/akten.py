@@ -73,8 +73,15 @@ def akte_gewaehlt() -> None:
 if st.session_state.get("aktive_akte") not in akten:
     st.session_state.aktive_akte = akten[0]
 st.session_state.akten_auswahl = st.session_state.aktive_akte
-akte = st.selectbox("Akte", akten, key="akten_auswahl", on_change=akte_gewaehlt, width=480)
+spalte_akte, spalte_export = st.columns([3, 1.3], vertical_alignment="bottom", width=700)
+akte = spalte_akte.selectbox("Akte", akten, key="akten_auswahl", on_change=akte_gewaehlt)
 eintraege = notizen.eintraege_laden(akte)
+if eintraege:
+    # Die Akte verlässt die App als einfache Textdatei: lesbar in jedem Editor, ohne CaseLocal.
+    spalte_export.download_button("Als Markdown", notizen.akte_markdown(akte, eintraege),
+                                  file_name=notizen.dateiname(akte), mime="text/markdown",
+                                  icon=":material/download:", width="stretch",
+                                  help="Alle Einträge dieser Akte mit Quellen und Notizen als Textdatei speichern.")
 if not eintraege:
     st.caption("Diese Akte ist noch leer.")
 elif len(eintraege) == 1:

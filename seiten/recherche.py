@@ -33,12 +33,6 @@ import suche
 
 OLLAMA_FEHLER = "Ollama ist nicht erreichbar. Bitte die Ollama-App starten und neu suchen."
 
-def datum_de(datum: str) -> str:
-    """"2013-11-14" -> "14.11.2013"; alles andere bleibt, wie es ist."""
-    teile = (datum or "").split("-")
-    return ".".join(reversed(teile)) if len(teile) == 3 else (datum or "")
-
-
 
 # --- Suchfeld --------------------------------------------------------------
 # Ein Formular sorgt dafür, dass auch die Enter-Taste die Suche startet.
@@ -234,7 +228,7 @@ def ablauf_anzeigen(e: dict) -> None:
     dauer = e.get("dauer") or {}
     if dauer:
         teile.append(f"{sum(dauer.values()):.1f} s auf diesem Rechner".replace(".", ","))
-    st.html(f'<div class="cl-run"><span class="cl-ok">Recherche abgeschlossen</span>'
+    st.html('<div class="cl-run"><span class="cl-ok">Recherche abgeschlossen</span>'
             + "".join(f"<span>{html.escape(t)}</span>" for t in teile) + "</div>")
     with st.expander("Ablauf und Suchbegriffe", key="ablauf", icon=":material/timeline:"):
         if dauer:
@@ -242,6 +236,9 @@ def ablauf_anzeigen(e: dict) -> None:
                 f"<div><b>{html.escape(stufe)}</b><span>{s:.1f} s</span></div>".replace(".", ",")
                 for stufe, s in dauer.items()) + "</div>")
         st.markdown("**Suchbegriffe:** " + " · ".join(e["schlagworte"]))
+        if config.FRAGEWOERTER_MITSUCHEN:
+            st.caption("Die Schlagwortsuche nutzt zusätzlich die Wörter der Frage selbst, "
+                       "die Bedeutungssuche die ganze Frage.")
         if e["pruefungen"]:
             st.markdown("**Einzelprüfung**")
             for t in e["auswahl"]:
@@ -273,7 +270,7 @@ def bilanz_anzeigen(e: dict, key: str = "bilanz") -> None:
 
 def quelle_html(t: dict, p: dict | None, extra: bool = False) -> str:
     """Eine Fundstelle in der Liste rechts: Nummer, Gericht und Az., Datum, Zitierhäufigkeit, Rn."""
-    gericht = [t["gericht"] or "Gericht unbekannt", datum_de(t.get("datum", ""))]
+    gericht = [t["gericht"] or "Gericht unbekannt", llm.datum_deutsch(t.get("datum") or "")]
     meta = []
     if t.get("zitiert_von"):
         meta.append(f"zitiert von {t['zitiert_von']}")
@@ -483,11 +480,11 @@ def urteile_anzeigen(e: dict) -> None:
     st.subheader("Urteile im Detail")
     for t in e["treffer"]:
         titel = (f"[{t['nr']}] {t['gericht'] or 'Gericht unbekannt'} · {t['typ'] or 'Entscheidung'} "
-                 f"vom {t['datum']} · {t['aktenzeichen']}  {badges(t)}")
+                 f"vom {llm.datum_deutsch(t['datum'])} · {t['aktenzeichen']}  {badges(t)}")
         with st.expander(titel):
             for a in t.get("abweichungen") or []:
                 st.warning(f"**Rechtsprechungsänderung prüfen:** {a['gericht']}, {a['typ'] or 'Entscheidung'} "
-                           f"vom {a['datum']}, Az. {a['aktenzeichen']} erörtert im Zusammenhang mit diesem "
+                           f"vom {llm.datum_deutsch(a['datum'])}, Az. {a['aktenzeichen']} erörtert im Zusammenhang mit diesem "
                            f"Urteil eine Änderung der Rechtsprechung. {a['erklaerung']} Ob dieses Urteil die "
                            "alte oder die neue Linie vertritt, bitte im Volltext prüfen: "
                            f"[{a['aktenzeichen']}](https://de.openlegaldata.io/case/{a['slug']})\n\n"

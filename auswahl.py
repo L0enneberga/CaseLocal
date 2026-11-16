@@ -117,7 +117,7 @@ def metadaten_laden() -> pd.DataFrame:
     meta = meta.rename(columns={"court.name": "gericht", "court.jurisdiction": "jurisdiction",
                                 "court.level_of_appeal": "level", "file_number": "aktenzeichen",
                                 "date": "datum", "type": "typ"})
-    meta["instanz"] = [instanz(l, g) for l, g in zip(meta.level, meta.gericht)]
+    meta["instanz"] = [instanz(stufe, gericht) for stufe, gericht in zip(meta.level, meta.gericht)]
     meta["gerichtsbarkeit"] = [gerichtsbarkeit(j, g) for j, g in zip(meta.jurisdiction, meta.gericht)]
     return meta
 

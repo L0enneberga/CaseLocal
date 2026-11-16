@@ -19,6 +19,7 @@ import ollama
 
 import config
 import gliederung
+import normen
 
 STOPPWOERTER = {"der", "die", "das", "und", "oder", "ein", "eine", "einer", "ist", "sind",
                 "wann", "wie", "was", "wer", "mit", "von", "für", "bei", "den",
@@ -71,6 +72,28 @@ def _db() -> sqlite3.Connection:
 def anzahl_urteile() -> int:
     with closing(_db()) as db:                         # Verbindung danach wieder schließen
         return db.execute("SELECT COUNT(*) FROM urteile").fetchone()[0]
+
+
+def einrichtung_fehlt() -> str | None:
+    """Was für eine Recherche noch fehlt, als kurzer Satz für die Oberfläche. None: alles da.
+
+    Die Daten sind nicht Teil des Repositorys. Wer die App nach dem Klonen ohne setup.bat
+    startet, soll einen Hinweis sehen statt einer Fehlermeldung von SQLite.
+    Die Funktion prüft nur und legt nichts an: Ein gewöhnliches sqlite3.connect oder ein
+    ChromaDB-Client würden leere Dateien erzeugen, die später wie ein Bestand aussehen.
+    """
+    if not config.SQLITE_PFAD.exists():
+        return "Es sind noch keine Urteile geladen."
+    try:
+        with closing(sqlite3.connect(config.SQLITE_PFAD.as_uri() + "?mode=ro", uri=True)) as db:
+            leer = db.execute("SELECT 1 FROM urteile LIMIT 1").fetchone() is None
+    except sqlite3.Error:                              # Datei ohne Tabellen oder keine Datenbank
+        leer = True
+    if leer:
+        return "Die Urteilsdatenbank enthält noch keine Urteile."
+    if not (config.CHROMA_PFAD / "chroma.sqlite3").exists() or not _sammlung().count():
+        return "Der Suchindex ist noch nicht gebaut."
+    return None
 
 
 def bestand_text() -> str:
@@ -137,6 +160,28 @@ def fts_anfrage(woerter: list[str]) -> str:
     return " OR ".join(t for t in teile if t)
 
 
+def suchbegriffe(frage: str, schlagworte: list[str]) -> list[str]:
+    """Die Begriffe für die Schlagwortsuche: die Suchbegriffe des Sprachmodells und dazu die
+    Wörter der Frage selbst (config.FRAGEWOERTER_MITSUCHEN).
+
+    Das Modell übersetzt die Frage in Fachbegriffe. Dabei verfehlt es manchmal den Wortlaut
+    der Urteile oder ergänzt eine unpassende Norm. Was in der Frage steht, bleibt deshalb in
+    der Suche. Normzitate der Frage bleiben als Ganzes erhalten ("§ 15 Abs. 2 AGG"), die
+    übrigen Wörter zählen einzeln. Jeder Begriff kommt nur einmal vor.
+    """
+    begriffe = list(schlagworte)
+    if begriffe and not config.FRAGEWOERTER_MITSUCHEN:
+        return begriffe
+    vorhanden = {b.lower() for b in begriffe}
+    zitate = [" ".join(m[0].split()) for m in normen.MUSTER.finditer(frage)]
+    rest = normen.MUSTER.sub(" ", frage)
+    for begriff in zitate + re.sub(r"[^\w ]", " ", rest).split():
+        if begriff.lower() not in vorhanden:
+            vorhanden.add(begriff.lower())
+            begriffe.append(begriff)
+    return begriffe
+
+
 def schlagwortsuche(woerter: list[str], anzahl: int = 10, filter: Filter | None = None) -> list[dict]:
     anfrage = fts_anfrage(woerter)
     if not anfrage:
@@ -164,21 +209,19 @@ def _sammlung():
                                            metadata={"hnsw:space": "cosine"})
 
 
-def _erlaubte_ids(ids: list[int], filter: Filter) -> set[int]:
-    """Welche dieser Urteile passen zum Filter? (Prüfung per SQL)"""
+def _gefilterte_ids(filter: Filter) -> set[int] | None:
+    """Alle Urteile des Bestands, die zum Filter passen. None heißt: Es ist kein Filter gesetzt."""
     bedingung, werte = filter.sql()
-    if not bedingung or not ids:
-        return set(ids)
-    platzhalter = ", ".join("?" for _ in ids)
+    if not bedingung:
+        return None
     with closing(_db()) as db:
-        zeilen = db.execute(f"SELECT id FROM urteile WHERE id IN ({platzhalter}) AND {bedingung}",
-                            (*ids, *werte)).fetchall()
-    return {z[0] for z in zeilen}
+        return {z[0] for z in db.execute(f"SELECT id FROM urteile WHERE {bedingung}", werte)}
 
 
 def einbetten(text: str) -> list[float]:
     """Rechnet einen Text (z. B. die Frage) in ein Embedding um."""
-    return ollama.embed(model=config.EMBED_MODELL, input=text)["embeddings"][0]
+    return ollama.embed(model=config.EMBED_MODELL, input=text,
+                        keep_alive=config.MODELL_BEREITHALTEN)["embeddings"][0]
 
 
 def _abschnitte_bewerten(ergebnis: dict) -> list[dict]:
@@ -200,21 +243,46 @@ def _abschnitte_bewerten(ergebnis: dict) -> list[dict]:
     return sorted(abschnitte, key=lambda a: a["wert"], reverse=True)
 
 
-def semantische_suche(frage: str, anzahl: int = 10, filter: Filter | None = None,
-                      vektor: list[float] | None = None) -> list[dict]:
-    filter = filter or Filter()
-    vektor = vektor or einbetten(frage)
-    # Mehr Abschnitte holen als nötig, weil oft mehrere aus demselben Urteil kommen
-    # und der Filter danach noch Urteile aussortiert.
-    faktor = 4 if not filter.sql()[0] else 15
-    sammlung = _sammlung()
-    ergebnis = sammlung.query(query_embeddings=[vektor],
-                              n_results=min(anzahl * faktor, max(sammlung.count(), 1)))
+def _beste_je_urteil(ergebnis: dict, erlaubt: set[int] | None) -> dict[int, dict]:
+    """Der beste Abschnitt je Urteil, beste zuerst. Mit erlaubt nur Urteile, die zum Filter passen."""
     beste: dict[int, dict] = {}
     for abschnitt in _abschnitte_bewerten(ergebnis):
-        beste.setdefault(abschnitt["urteil_id"], abschnitt)   # nur den besten Abschnitt je Urteil
-    erlaubt = _erlaubte_ids(list(beste), filter)
-    return [t for uid, t in beste.items() if uid in erlaubt][:anzahl]
+        if erlaubt is None or abschnitt["urteil_id"] in erlaubt:
+            beste.setdefault(abschnitt["urteil_id"], abschnitt)
+    return beste
+
+
+def semantische_suche(frage: str, anzahl: int = 10, filter: Filter | None = None,
+                      vektor: list[float] | None = None) -> list[dict]:
+    """Die Urteile mit den ähnlichsten Abschnitten, je Urteil nur der beste Abschnitt.
+
+    ChromaDB liefert Abschnitte, gebraucht werden Urteile: Oft stammen mehrere der besten
+    Abschnitte aus demselben Urteil, und ein Filter sortiert weitere aus. Deshalb sieht die
+    Suche schrittweise mehr Abschnitte durch, bis genug Urteile zusammen sind. Lässt ein
+    enger Filter (z. B. nur Finanzgerichtsbarkeit ab 2023) auch dann zu wenig übrig, sucht
+    ChromaDB nur noch in den erlaubten Urteilen. Das ist bei wenigen Urteilen schnell, bei
+    vielen langsam, darum erst als zweiter Schritt.
+    """
+    vektor = vektor or einbetten(frage)
+    erlaubt = _gefilterte_ids(filter or Filter())
+    sammlung = _sammlung()
+    gesamt = sammlung.count()
+    if not gesamt or erlaubt is not None and not erlaubt:
+        return []
+    tiefe = min(anzahl * 4, gesamt)
+    while True:
+        beste = _beste_je_urteil(sammlung.query(query_embeddings=[vektor], n_results=tiefe), erlaubt)
+        if len(beste) >= anzahl or tiefe >= min(config.SUCHTIEFE_MAX, gesamt):
+            break
+        tiefe = min(tiefe * 8, config.SUCHTIEFE_MAX, gesamt)
+    if len(beste) < min(anzahl, len(erlaubt or ())) and tiefe < gesamt:
+        # Ein Urteil hat höchstens MAX_CHUNKS_PRO_URTEIL Abschnitte: So viele Abschnitte
+        # enthalten sicher `anzahl` verschiedene Urteile, wenn es so viele erlaubte gibt.
+        ergebnis = sammlung.query(query_embeddings=[vektor],
+                                  n_results=min(anzahl * config.MAX_CHUNKS_PRO_URTEIL, gesamt),
+                                  where={"urteil_id": {"$in": sorted(erlaubt)}})
+        beste = _beste_je_urteil(ergebnis, None)
+    return list(beste.values())[:anzahl]
 
 
 def _bester_abschnitt(urteil_id: int, vektor: list[float]) -> dict | None:
@@ -280,9 +348,10 @@ def hybride_suche(frage: str, schlagworte: list[str], anzahl: int = 8,
     (z. B. "Gründe, Rn. 15–17"), die Nachbarabschnitte sowie Leitsatz und Tenor.
     """
     vektor = einbetten(frage)
+    tiefe = max(anzahl * 2, config.FUSION_TIEFE)
     listen = {
-        "Bedeutung": semantische_suche(frage, anzahl * 2, filter, vektor),
-        "Schlagwort": schlagwortsuche(schlagworte or frage.split(), anzahl * 2, filter),
+        "Bedeutung": semantische_suche(frage, tiefe, filter, vektor),
+        "Schlagwort": schlagwortsuche(suchbegriffe(frage, schlagworte), tiefe, filter),
     }
     punkte: dict[int, float] = {}
     beste: dict[int, dict] = {}

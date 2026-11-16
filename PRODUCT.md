@@ -43,7 +43,7 @@ The model only handles what needs language understanding. Code handles what code
 ## Evidence on Hand
 
 - README screenshots: `docs/screenshot1.png` to `docs/screenshot4.png` (current default dark Streamlit look).
-- Measurements in the README: falsches Datum/Az. 0 (previously 6); 88 % of statements supported (99/113); 10/13 leading decisions in the top 5; about 28 s per question.
+- Measurements in the README: falsches Datum/Az. 0 (previously 6); 94 % of statements supported (102/109); 13/13 leading decisions in the top 5 and cited; about 26 s per question.
 - No users, testimonials or deployments exist. Do not fabricate any.
 
 ## Product Principles

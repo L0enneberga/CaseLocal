@@ -4,6 +4,7 @@ Aufruf:  python bewertung.py --name vorher
          python bewertung.py --name nachher --nur 3      (nur die ersten 3 Fragen)
          python bewertung.py --name denken --denken-pruefung ja   (Denkmodus in den Prüfschritten)
          python bewertung.py --name ohne --ohne-gesetzestexte     (kein Normtext im Material)
+         python bewertung.py --name suche --nur-suche             (nur die Suche, wenige Sekunden)
 
 Jede Frage läuft durch dieselbe Kette wie in der App (mit gründlicher Analyse,
 Rechtsprechungsänderungen und Zitatprüfung). Gemessen wird pro Frage:
@@ -74,6 +75,33 @@ def frage_bewerten(gold: dict) -> dict:
     }
 
 
+def suche_bewerten(gold: dict) -> dict:
+    """Nur die Suche: An welcher Stelle steht das erwartete Urteil? (ohne Antwort, wenige Sekunden)"""
+    frage = gold["frage"]
+    treffer = suche.hybride_suche(frage, llm.frage_zu_schlagworten(frage), 10)
+    return {"frage": frage, "aktenzeichen": gold["aktenzeichen"],
+            "rang": next((t["nr"] for t in treffer if t["aktenzeichen"] == gold["aktenzeichen"]), None),
+            "treffer": [f"[{t['nr']}] {t['gericht']} {t['datum']} {t['aktenzeichen']}" for t in treffer]}
+
+
+def suche_zusammenfassen(ergebnisse: list[dict]) -> dict:
+    """Kennzahlen der Suche: Wie oft steht das erwartete Urteil vorn?
+
+    "ausgewertet" zählt die Fragen, bei denen es unter den Treffern ist, die das Sprachmodell
+    überhaupt zu sehen bekommt (config.KI_TREFFER). "mrr" ist der Mittelwert von 1 / Rang
+    (1.0 = immer auf Platz 1; nicht gefunden zählt 0).
+    """
+    raenge = [e["rang"] for e in ergebnisse]
+    return {
+        "fragen": len(raenge),
+        "top1": sum(1 for r in raenge if r == 1),
+        "top5": sum(1 for r in raenge if r and r <= 5),
+        "ausgewertet": sum(1 for r in raenge if r and r <= config.KI_TREFFER),
+        "nicht_gefunden": sum(1 for r in raenge if not r),
+        "mrr": round(sum(1 / r for r in raenge if r) / len(raenge), 3) if raenge else None,
+    }
+
+
 def zusammenfassen(ergebnisse: list[dict]) -> dict:
     """Kennzahlen über alle Fragen."""
     zaehler = {stufe: sum(e["zitatpruefung"].get(stufe, 0) for e in ergebnisse)
@@ -98,6 +126,8 @@ def main() -> None:
                         help="Denkmodus in den Prüfschritten (überschreibt config.DENKEN_PRUEFUNG)")
     parser.add_argument("--ohne-gesetzestexte", action="store_true",
                         help="keine Normtexte im Material (setzt config.NORMEN_MAX = 0)")
+    parser.add_argument("--nur-suche", action="store_true",
+                        help="nur den Rang des erwarteten Urteils messen, ohne Antwort und Zitatprüfung")
     argumente = parser.parse_args()
     if argumente.ohne_gesetzestexte:
         config.NORMEN_MAX = 0
@@ -105,6 +135,19 @@ def main() -> None:
         config.DENKEN_PRUEFUNG = argumente.denken_pruefung == "ja"
 
     goldfragen = json.loads(GOLDFRAGEN.read_text(encoding="utf-8"))[: argumente.nur]
+    AUSGABE.mkdir(parents=True, exist_ok=True)
+    datei = AUSGABE / f"{argumente.name}.json"
+    if argumente.nur_suche:
+        ergebnisse = [suche_bewerten(gold) for gold in goldfragen]
+        for e in ergebnisse:
+            print(f"Rang {e['rang'] or '-':>2} · {e['aktenzeichen']}", flush=True)
+        gesamt = suche_zusammenfassen(ergebnisse)
+        datei.write_text(json.dumps({"gesamt": gesamt, "fragen": ergebnisse}, ensure_ascii=False, indent=2),
+                         encoding="utf-8")
+        print(json.dumps(gesamt, ensure_ascii=False))
+        print(f"Gespeichert: {datei}")
+        return
+
     ergebnisse = []
     for i, gold in enumerate(goldfragen, 1):
         e = frage_bewerten(gold)
@@ -115,8 +158,6 @@ def main() -> None:
 
     gesamt = zusammenfassen(ergebnisse)
     gesamt.update(modell=config.LLM_MODELL, denken_pruefung=config.DENKEN_PRUEFUNG, normen_max=config.NORMEN_MAX)
-    AUSGABE.mkdir(parents=True, exist_ok=True)
-    datei = AUSGABE / f"{argumente.name}.json"
     datei.write_text(json.dumps({"gesamt": gesamt, "fragen": ergebnisse}, ensure_ascii=False, indent=2),
                      encoding="utf-8")
     print(json.dumps(gesamt, ensure_ascii=False))

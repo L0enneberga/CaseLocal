@@ -56,8 +56,14 @@ CHUNK_ZEICHEN = 1500          # Länge eines Textabschnitts
 CHUNK_UEBERLAPPUNG = 200      # so viele Zeichen wiederholen sich zwischen zwei Abschnitten
 MAX_CHUNKS_PRO_URTEIL = 40    # sehr lange Urteile werden gekürzt (spart Zeit)
 EMBED_BATCH = 64              # so viele Abschnitte gehen gleichzeitig an das Embedding-Modell
+MODELL_BEREITHALTEN = "30m"   # so lange bleiben die Modelle nach der letzten Frage im Speicher. Ollama
+                              # entlädt sie sonst nach 5 Minuten, und die nächste Frage wartet auf das Laden.
 LLM_KONTEXT = 16384           # wie viel Text das LLM auf einmal "sehen" darf (in Tokens);
                               # mit "ollama ps" prüfen, ob es noch zu 100 % auf der GPU läuft
+# Obergrenzen für die Länge einer Antwort (in Tokens). Übliche Antworten sind viel kürzer; die
+# Grenze greift nur, wenn das Modell in eine Schleife gerät und sonst minutenlang weiterschriebe.
+JSON_MAX_TOKENS = 1500        # Suchbegriffe, Einzelprüfung, Zitatprüfung (üblich: 100 bis 800)
+ANTWORT_MAX_TOKENS = 2500     # die gegliederte Antwort (üblich: rund 1000)
 # Denkmodus: Gemma 4 kann vor der Antwort "nachdenken". Gemessen an 13 Testfragen (siehe
 # README, Abschnitt Messung): In der Zitatprüfung 13-mal langsamer, nur 3 von 109 Sätzen
 # strenger bewertet, und bei langen Urteilen denkt sich das Modell oft fest (keine Antwort).
@@ -68,6 +74,11 @@ NORMEN_MAX = 5                # höchstens so viele Normtexte gehen ins Material
 NORMTEXT_ZEICHEN = 1200       # ... je höchstens so lang (zitierter Absatz, sonst Anfang der Norm)
 CHROMA_NORMEN = "normen"      # ChromaDB-Sammlung für die Normsuche
 KI_TREFFER = 6               # so viele der besten Treffer wertet das LLM für die Antwort aus
+FRAGEWOERTER_MITSUCHEN = True # Schlagwortsuche: neben den KI-Suchbegriffen auch die Wörter der Frage
+FUSION_TIEFE = 50             # so viele Urteile je Teilsuche (Bedeutung, Schlagwort) gehen in die gemeinsame
+                              # Rangfolge ein, auch wenn weniger Treffer angezeigt werden
+SUCHTIEFE_MAX = 4096          # so viele der ähnlichsten Abschnitte sieht die Bedeutungssuche höchstens
+                              # durch, bevor sie einen engen Filter direkt an ChromaDB übergibt
 
 # Gewichtung der Urteilsteile bei der Bedeutungssuche (1.0 = neutral).
 # Gründe und Leitsätze enthalten die Wertung des Gerichts, der Tatbestand

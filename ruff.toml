@@ -1,0 +1,8 @@
+# Einstellungen für den Linter ruff (pip install -r requirements-dev.txt, dann: ruff check .)
+# Geprüft werden nur echte Fehler: Syntax, unbenutzte Importe, unbekannte Namen.
+# Bewusst keine Stilregeln, der Code soll lesbar bleiben, nicht umformatiert werden.
+line-length = 125
+target-version = "py311"
+
+[lint]
+select = ["E4", "E7", "E9", "F"]

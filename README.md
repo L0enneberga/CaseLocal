@@ -154,7 +154,7 @@ Gespeichert werden die Frage, die Antwort, die Fundstellen, die die Antwort ziti
     </td>
     <td width="50%" valign="top">
       <a href="docs/screenshot6.png"><img src="docs/screenshot6.png" alt="Seite Meine Akten mit aufgeklapptem Eintrag"></a><br>
-      <sub><b>Meine Akten:</b> Frage, Antwort, Fundstellen und Notiz jedes Eintrags.</sub>
+      <sub><b>Meine Akten:</b> Frage, Antwort, Fundstellen und Notiz jedes Eintrags, dazu der Export als Markdown.</sub>
     </td>
   </tr>
 </table>
